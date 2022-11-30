@@ -1,0 +1,30 @@
+{
+  "name": "mages.release",
+  "version": "1.2.0",
+  "engines": {
+    "node": "12.18.0"
+  },
+  "description": "Release for MAGES. bot, helper for discord servers.",
+  "main": "index.js",
+  "start": "index.js",
+  "scripts": {
+    "start": "node webpage.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.heroku.com/mages-bot.git"
+  },
+  "keywords": [
+    "bot",
+    "discord",
+    "neptunia",
+    "administration"
+  ],
+  "author": "Aurore Foëx",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "pg": "^8.6.0"
+  }
+}
