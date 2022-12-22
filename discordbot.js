@@ -1,11 +1,29 @@
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+//process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-const { Client, Intents } = require("discord.js");
-const intents = new Intents([
-    Intents.NON_PRIVILEGED, // include all non-privileged intents, would be better to specify which ones you actually need
-    "GUILD_MEMBERS", // lets you request guild members (i.e. fixes the issue)
-]);
-const client = new Client({ ws: { intents } });
+const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
+
+const client = new Client({ intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildBans,
+    GatewayIntentBits.GuildEmojisAndStickers,
+    //GatewayIntentBits.GuildInvites,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageReactions,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.AutoModerationConfiguration,
+    GatewayIntentBits.AutoModerationExecution
+] });
+
+/*TODO:
+Server permissions only
+Automoderation
+Slash commands
+Right click commands
+Message interactions
+*/
 
 const Token = process.env.TOKEN;
 const Owner = process.env.OWNER;
@@ -13,7 +31,9 @@ var ownerUser;
 const events = require('events');
 const tools = require('./tools');
 const dao = require('./dao');
+const business = require('./business');
 const personality = require('./personality');
+const interactions = require('./interactions');
 const intervalStarted = false;
 const dayInMS = 86400000;
 
@@ -27,6 +47,7 @@ var inRaid = false;
 var activeRole = null;
 
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS /////////////////////////////
+/*
 function patchEmitter(emitter) {
     var oldEmit = emitter.emit;
 
@@ -40,35 +61,99 @@ function patchEmitter(emitter) {
         oldEmit.apply(emitter, arguments);
     };
 }
-//patchEmitter(client)
+patchEmitter(client);
+*/
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS //////////////////////////////
 
-//Notify a new member in the dedicated welcome channel (if any)
-function notifyNewMember(member){
-    if(member!== null){
-        dao.getWelcomeChannel(member.guild).then(function(channel_id){
-            dao.getInfoChannel(member.guild).then(function(info_id){
-                let channel = member.guild.channels.cache.get(channel_id);
-                let infoChannel = member.guild.channels.cache.get(info_id);
-                if(channel !== undefined){
-                    let string='';
-                    if(infoChannel !== undefined){
-                        string= ' Make sure to check the rules and get the roles you want in <#'+infoChannel.id+'>.';
-                    }
-                    channel.send('Welcome to '+channel.guild.name+', <@'+member.user.id+'>.'+string+' '+tools.randomWelcome());
-                }else{
-                    console.error('Channel not found');
-                }
-            }, function(err){
+//Client initialisation
+client.on('ready', function(){
+    client.application.fetch().then(function(application){
+        ownerUser = application.owner;
+        console.log('Welcome to MAGES.'+'\nOwner: '+ownerUser.tag);
+        ownerUser.createDM().then(DMchannel =>{
+            DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err =>{
                 console.error(err);
             });
-        },function(err){
-            console.error(err);
+        }), err =>{console.error(err)};
+    }).catch(err => {console.error(err)});
+
+
+    console.log('Logged in as '+client.user.tag+'!');
+    client.user.setActivity(".P HELP",{ type: 'LISTENING' });
+    client.guilds.fetch().then(function(guilds){
+        if(guilds.available)
+            guilds = new Array(guilds);
+        guilds.forEach(function (guild){
+            console.log('Available guild '+guild.name)
+        })
+    });
+    //interactions.initialize();
+    //TODO useful to fix starboard????
+    /*.cache.array().forEach(function(guild){//cache channel messages to allow reaction/logs
+        dao.getInfoChannel(guild).then(function(infoChannel){
+            let channel = guild.channels.cache.get(infoChannel);
+            if(channel!== null){
+                channel.messages.fetch().then(
+                    function(messages){
+                        console.log('Fetched '+messages.size+' messages from '+guild.name);
+                    }, function(err){console.error(err);});
+            }
+        }, function(err){console.error("Caching "+err);});
+    });*/
+    //TODO: Periodic check
+    /*client.setInterval(function(){
+        client.guilds.cache.array().forEach(function(thisguild){
+            tools.updateShareMessage(thisguild);
         });
-    }else{
-        console.error('Member is null');
+    }, 300000);
+
+    var periodic = function(){
+        tools.asyncForEach(client.guilds.cache.array(),function(thisGuild){
+            tools.removeRoleFromInactive(thisGuild);
+        });
+    };
+    var boundPeriodic = periodic.bind(this);
+    client.setInterval(boundPeriodic, 43200000);
+    //Load sheduled events
+    tools.loadTimedEvents(client);*/
+
+});//on event "ready" end
+
+client.on(Events.InteractionCreate, async interaction => {
+    //if (!interaction.isChatInputCommand()) return;
+    //console.log(interaction);
+    //Register commands
+
+    if(interaction.isChatInputCommand()){
+        switch (String(interaction.commandName)){
+            case 'yo':
+                await interaction.reply({ content: 'Secret Pong!', ephemeral: true });
+                break;
+            case 'mute':
+                await interaction.reply({ content: 'This should be the list of muted users', ephemeral: true });
+                break;
+            case 'whitelist':
+                let res = await business.toggleWhitelist(interaction.member);
+                await interaction.reply({ content: res, ephemeral: true });
+                break;
+        }
+    }else if(interaction.isUserContextMenuCommand()){
+        switch (String(interaction.commandName)){
+            case 'toggle mute':
+                business.muteUnmute(client, interaction).then(function(res){
+                    interaction.reply({ content: res, ephemeral: true });
+                });
+                break;
+            case 'register':
+                let res = await interactions.register();
+                await interaction.reply({ content: res, ephemeral: true });
+                break;
+        }        
+    }else if(interaction.isMessageContextMenuCommand()){
+
     }
-}
+
+});
 
 function sendNext(pinnedArray ,i ,notLast ,targetChannel){
     if(i >= 0 && i < pinnedArray.length-1 || i == pinnedArray.length-1 && !notLast){
@@ -91,90 +176,37 @@ function sendNext(pinnedArray ,i ,notLast ,targetChannel){
     }
 }
 
-//Client initialisation
-client.on('ready', function(){
-    client.fetchApplication().then(function(app){
-        ownerUser = app.owner;
-        console.log('Welcome to MAGES.'+'\nOwner: '+ownerUser.tag);
-        ownerUser.createDM().then(DMchannel =>{
-            DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err =>{
-                console.error(err);
-            });
-        }, err =>{console.error(err);});
-    }, function(err){
-        console.error("Cannot fetch user: "+err);
-    });
-
-    console.log('Logged in as '+client.user.tag+'!');
-    client.user.setActivity(".P HELP",{ type: 'LISTENING' }).then(function(presence){
-    },function(err){
-        console.error(err);
-    });
-    client.guilds.cache.array().forEach(function(guild){//cache channel messages to allow reaction/logs
-        dao.getInfoChannel(guild).then(function(infoChannel){
-            let channel = guild.channels.cache.get(infoChannel);
-            if(channel!== null){
-                channel.messages.fetch().then(
-                    function(messages){
-                        console.log('Fetched '+messages.size+' messages from '+guild.name);
-                    }, function(err){console.error(err);});
-            }
-        }, function(err){console.error("Caching "+err);});
-    });
-    client.setInterval(function(){
-        client.guilds.cache.array().forEach(function(thisguild){
-            tools.updateShareMessage(thisguild);
-        });
-    }, 300000);
-
-    var periodic = function(){
-        tools.asyncForEach(client.guilds.cache.array(),function(thisGuild){
-            tools.removeRoleFromInactive(thisGuild);
-        });
-    };
-    var boundPeriodic = periodic.bind(this);
-    client.setInterval(boundPeriodic, 43200000);
-    //Load sheduled events
-    tools.loadTimedEvents(client);
-
-});//on event "ready" end
-
-
-
 //(target, client, name, currentEvent, parameter2)
 client.on('warn',function(warn){
-    tools.genericEventNotifier(ownerUser, client, 'warn', warn);
+    tools.genericEventNotifier(ownerUser, 'warn', warn);
 });
 client.on('error',function(error){
-    tools.genericEventNotifier(ownerUser, client, 'error', error);
+    tools.genericEventNotifier(ownerUser, 'error', error);
 });
 client.on('guildCreate',function(guild){
-    tools.genericEventNotifier(ownerUser, client, 'guildCreate', guild);
+    tools.genericEventNotifier(ownerUser, 'guildCreate', guild);
     dao.registerGuild(guild);
 });
 client.on('guildDelete',function(guild){
-    tools.genericEventNotifier(ownerUser, client, 'guildDelete', guild);
+    tools.genericEventNotifier(ownerUser, 'guildDelete', guild);
 });
+
 client.on('guildMemberUpdate',function(oldMember, newMember){
-    let oldRoles = oldMember.roles.cache.array();
-    let newRoles = newMember.roles.cache.array();
-    if(oldRoles.length < newRoles.length){//A role has been added
-        let addedRoles = newMember.roles.cache.difference(oldMember.roles.cache);
-        dao.getLocalPowerLevels(newMember.guild).then(function(powerLevels){
-            let isPowerful = false;
-            addedRoles.forEach(function(role){
-                isPowerful = powerLevels.rows.find(pl => {
-                    return pl.role === role.id && pl.powerlevel < 99;
-                }); //The new role is powerful
-            });
-            if(isPowerful){
+    //Calculate differences
+    let roleRemoved = oldMember._roles.filter(x => !newMember._roles.includes(x));
+    let roleAdded = newMember._roles.filter(x => !oldMember._roles.includes(x));
+    //Roles has been added
+    if(roleAdded.length > 0){
+        roleAdded.every(function(role){
+            //Check if one of the added role is a mod role, if they can manage messages
+            if(!oldMember.permissions.has(PermissionsBitField.Flags.ManageMessages) && 
+               newMember.permissions.has(PermissionsBitField.Flags.ManageMessages)){
                 newMember.user.createDM().then(function(DM){
-                    DM.send('You received a role that makes you eligible to notifications for '+newMember.guild.name+'. To receive notifications, go in one of the server\'s channel and type the following command:\n'+
-                            '\`.p whitelist\`').catch(function(err){console.error(err);});
+                    DM.send('You received a role that makes you eligible to notifications for '+newMember.guild.name+'. To receive notifications, '+
+                            'type /whitelist').catch(function(err){console.error(err);});
                 },function(err){console.error(err);});
             }
-        });
-
+        }); 
     }
 });
 client.on('guildBanAdd',function(guild, user){
@@ -186,81 +218,7 @@ client.on('guildBanRemove',function(guild, user){
 }, function(err){console.error('guildBanRemove '+err);});
 
 client.on('guildMemberAdd',function(member){
-    var currentMemberId = member.id;
-    var currentGuildId = member.guild.id;
-    dao.getPunishment(currentGuildId, currentMemberId).then(function(punishments){
-        let punishment;
-        if(punishments.rowCount === 0){
-            punishment = "";
-        }else{
-            punishment = punishments.rows[0].punishment;
-        }
-        if(punishment == "muted"){
-            tools.findByName(member.guild.roles, 'Muted').then(function(role){
-                member.roles.add(role,"Muted because on mute list.").catch(function(err){console.error('MUTE'+err);});
-            }, function(err){console.error(err);});
-        }
-        if(punishment == "banned"){
-            member.ban().then(function(res){
-                //No need to keep them in the databese now that they are banned.
-                dao.removePunishment(currentGuildId,currentMemberId);
-            },function(err){console.error("Banning error: "+err);});
-        }else if(member.user.tag.includes('discord.gg/')||member.user.tag.includes('discordapp.com/')||member.user.tag.includes('discord.com/')){
-            member.ban({ reason: 'Name contains an invite link' }).then(function(res){
-                tools.levelEventNotifier(3, member.guild, client, 'guildBanAdd', member.user, member.guild);
-            }, function(err){
-                tools.levelEventNotifier(3, member.guild, client, 'warn', 'Could detect potential raid but not ban it\n User: '+member.user.tag+'\nReason: '+err);
-            });
-        } else {
-            dao.isFrozen(member.guild).then(function(res){
-                let isFrozen = res.rows[0].is_frozen;
-                if (isFrozen){
-                    tools.findByName(member.guild.roles, 'Muted').then(function(role){
-                        member.roles.add(role).then(function(res){
-                            member.user.createDM().then(function(DM){
-                                DM.send("Sorry for the inconvenience, the guild is facing difficulties and you've been muted, a moderator should contact you shortly.").catch(function(err){
-                                    console.error('Cannot send DM to '+member.user.tag+ ' '+err);
-                                });
-                            }, function(err){
-                                console.error(err);
-                            });
-                            tools.levelEventNotifier(3, member.guild, client, 'userFrozen', member);//TODO: Make configurable
-                        },function(err){
-                            tools.levelEventNotifier(3, member.guild, client, 'warn', 'Despite the raid, a mute role could not be given to user '+member.user.tag);
-                            console.error('Despite the raid, a mute role could not be given to user '+member.user.tag+" "+err);
-                        });
-                    }, function(err){console.error(err);});
-                }
-            }, function(err){console.log('guildMemberAdd '+err);});
-
-            dao.getNationJoin(member.guild).then(function(enabled){
-                if(enabled){
-                    tools.getRandomNation(member.guild).then(function(res){
-                        member.roles.add(member.guild.roles.cache.get(res.role_id)).catch(function(err){
-                            console.error('getNationJoin '+err);//ADD THIS ON THE REAL USE
-                        });
-                    }, function(err){
-                        console.error('getNationJoin '+err);//ADD THIS ON THE REAL USE
-                    });
-                }
-            }, function(err){console.error('guildMemberAdd '+err);});
-            notifyNewMember(member);
-            let limitDate = member.user.createdAt;
-            console.log(limitDate);
-            limitDate.setDate(limitDate.getDate() +1);
-            console.log(limitDate);
-            if(new Date() < limitDate){
-                console.log('New account');
-                tools.findByName(member.guild.roles, 'Muted').then(function(role){
-                    member.roles.add(role,"Account is too young").catch(function(err){console.error('MUTE '+err);});
-                }, function(err){console.error(err);});
-                tools.levelEventNotifier(3, member.guild, client, 'guildMuteAdd', member);
-            }
-            tools.levelEventNotifier(3, member.guild, client, 'guildMemberAdd', member);
-        }
-    },function(err){
-        console.error("getPunishment() "+err);
-    });
+    business.notifyNewMember(member);
 }, function(err){console.error('event guildMemberAdd '+err);});
 
 client.on('guildMemberRemove',function(member){
@@ -310,7 +268,7 @@ client.on('messageReactionAdd', function(messageReaction, user){
                                         if(doubleCheck.isunique && doubleCheck.message_id != message.id){//Every nation message except the requested one
                                             let suspectMessage = message.channel.messages.resolve(doubleCheck.message_id);
                                             if(suspectMessage === undefined){
-                                                tools.genericEventNotifier(ownerUser, client, 'warn', 'Unable to fetch reactable info message, please reload the info messages on '+messageReaction.message.guild);
+                                                tools.genericEventNotifier(ownerUser, 'warn', 'Unable to fetch reactable info message, please reload the info messages on '+messageReaction.message.guild);
                                             }else{
                                                 //Remove unneeded reactions
                                                 suspectMessage.reactions.cache.array().forEach(function(reaction){
@@ -343,7 +301,7 @@ client.on('messageReactionAdd', function(messageReaction, user){
                                 if(doubleCheck.isunique && doubleCheck.message_id != message.id){//Every nation message except the requested one
                                     let suspectMessage = message.channel.messages.resolve(doubleCheck.message_id);
                                     if(suspectMessage === undefined){
-                                        tools.genericEventNotifier(ownerUser, client, 'warn', 'Unable to fetch reactable info message, please reload the info messages on '+messageReaction.message.guild);
+                                        tools.genericEventNotifier(ownerUser, 'warn', 'Unable to fetch reactable info message, please reload the info messages on '+messageReaction.message.guild);
                                     }else{
                                         //Remove unneeded reactions
                                         suspectMessage.reactions.cache.array().forEach(function(reaction){
@@ -356,9 +314,9 @@ client.on('messageReactionAdd', function(messageReaction, user){
                     }, function(err){console.error(err);});                            
                 }
             });
-            }, function(err){
-                console.error("Could not get event nations properly: "+err);
-            }).catch(function(err){console.error(err);});
+        }, function(err){
+            console.error("Could not get event nations properly: "+err);
+        }).catch(function(err){console.error(err);});
     }
 });
 
@@ -635,7 +593,7 @@ client.on('message', function(msg){
                                             }else{
                                                 dao.createEventNation(parsedMessage[2],parsedMessage[3],parsedMessage[4],parsedMessage[5],parsedMessage[6], role, true).then(function(res){
                                                     msg.reply('Event nation '+parsedMessage[2]+' created').catch(function(err){console.error('CREATEEVENTNATION '+err);
-                                                                                                                        });
+                                                                                                                              });
                                                 });
                                             }
                                         }, function(err){console.error(err);});
@@ -666,7 +624,7 @@ client.on('message', function(msg){
                                         });
                                         },function(err){console.error("SENDTOSTARBOARD "+err);});
                                     });
-                                    
+
                                 } 
                             }else */if(parsedMessage[1].toUpperCase() == 'PARROT'){
                                 if (parsedMessage.length >= 4){

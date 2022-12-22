@@ -174,54 +174,53 @@ async function asyncForEach(array, callback) { // jshint ignore:line
 }
 
 // A function that can be called to private message the bot's target to make sure they know
-function genericEventNotifier(target, client, name, currentEvent, parameter2){
-    if(target != client.user){
-        target.createDM().then(function(dmChan){
-            let string;
-            switch(name){
-                case 'guildCreate':
-                    string = "I decided to join a new laboratory, it's called "+currentEvent.name+".\n";
-                    break;
-                case 'error':
-                    string = 'Websocket error '+currentEvent.name+'\n'+currentEvent.message+'\n'+
-                        "I've failed I've failed I've failed \n"+
-                        "I've failed I've failed I've failed \n"+
-                        "I've failed I've failed I've failed \n";
-                    break;
-                case 'guildDelete':
-                    string = "I'm no longer in "+currentEvent.name+'... I wonder what happened.';
-                    break;
-                case 'warn':
-                    string = 'General warning: '+currentEvent;
-                    break;
-                case 'guildBanAdd':
-                    string = currentEvent+' has been banned from the '+parameter2+' realm';
-                    break;
-                case 'guildBanRemove':
-                    string = currentEvent+' has been unbanned from the '+parameter2+' realm';
-                    break;
-                case 'guildMemberAdd':
-                    string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild;
-                    break;
-                case 'guildMemberRemove':
-                    string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild;
-                    break;
-                case 'userFrozen':
-                    string = "Member "+currentEvent.user.tag+" was frozen from "+currentEvent.guild.name+" because of the server's policy.";
-                    break;
-                case 'guildMuteAdd':
-                    string = "Member "+currentEvent.user.tag+" was muted from "+currentEvent.guild.name+". Check audit logs for more info.";
-                    break;
-                default:
-                    string = 'No message for event '+name+'\n'+currentEvent;
-            }
-            dmChan.send(string).catch(function(err){
-                console.error('Unable to send DM, '+err);
-            });
-        },function(err){
-            console.error('Cannot create DM: '+err+'\n');
+function genericEventNotifier(target, name, currentEvent, parameter2){
+    target.createDM().then(function(dmChan){
+        let string;
+        switch(name){
+            case 'guildCreate':
+                string = "I decided to join a new laboratory, it's called "+currentEvent.name+".\n";
+                break;
+            case 'error':
+                string = 'Websocket error '+currentEvent.name+'\n'+currentEvent.message+'\n'+
+                    "I've failed I've failed I've failed \n"+
+                    "I've failed I've failed I've failed \n"+
+                    "I've failed I've failed I've failed \n";
+                break;
+            case 'guildDelete':
+                string = "I'm no longer in "+currentEvent.name+'... I wonder what happened.';
+                break;
+            case 'warn':
+                string = 'General warning: '+currentEvent;
+                break;
+            case 'guildBanAdd':
+                string = currentEvent+' has been banned from the '+parameter2+' realm';
+                break;
+            case 'guildBanRemove':
+                string = currentEvent+' has been unbanned from the '+parameter2+' realm';
+                break;
+            case 'guildMemberAdd':
+                string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild;
+                break;
+            case 'guildMemberRemove':
+                string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild;
+                break;
+            case 'userFrozen':
+                string = "Member "+currentEvent.user.tag+" was frozen from "+currentEvent.guild.name+" because of the server's policy.";
+                break;
+            case 'guildMuteAdd':
+                string = "Member "+currentEvent.user.tag+" was muted from "+currentEvent.guild.name+". Check audit logs for more info.";
+                break;
+            default:
+                string = 'No message for event '+name+'\n';
+                string += JSON.stringify(currentEvent);
+        }
+        dmChan.send(string).catch(function(err){
+            console.error('Unable to send DM, '+err);
         });
-    }
+    },function(err){
+        console.error('Cannot create DM: '+err+'\n');
+    });
 }
 
 async function findByName(manager, name){ // jshint ignore:line
@@ -237,7 +236,7 @@ function levelEventNotifier(level, guild, client, name, currentEvent, parameter2
         getUsersPower(admins.rows, guild).then(function(powerUsers){
             powerUsers.forEach(function(memberPower){
                 if(memberPower.power <= level){
-                    genericEventNotifier(memberPower.member.user, client, name, currentEvent, parameter2);
+                    genericEventNotifier(memberPower.member.user, name, currentEvent, parameter2);
                 }else if(memberPower.power >= 99){
                     //No need to keep track for users without powers
                     dao.blacklistAdmin(memberPower.member.user, guild);
@@ -433,13 +432,13 @@ async function convertMessageToEmbed(msg, prefix){ // jshint ignore:line
     }else{
         console.log("Member "+message.author.tag+" seems to have left.");
     }
-    
+
     let content = stripLinks(message.content);
     let description = content.text;
     let authorName = prefix+message.author.tag
     let authorIcon = message.author.displayAvatarURL();
     let timestamp = new Date(message.createdTimestamp);
-    
+
     let attachements = message.attachments.array();
     let embeds = message.embeds;
     if(embeds.length !== 0){
@@ -480,9 +479,9 @@ function stripLinks(string){
 
 function decorate(embed, description, authorName, authorIcon, timestamp, color){
     embed.setDescription(description)
-    .setAuthor(authorName, authorIcon)
-    .setTimestamp(timestamp)
-    .setColor(color);
+        .setAuthor(authorName, authorIcon)
+        .setTimestamp(timestamp)
+        .setColor(color);
     return embed;
 }
 
