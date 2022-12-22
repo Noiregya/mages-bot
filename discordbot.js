@@ -209,21 +209,32 @@ client.on('guildMemberUpdate',function(oldMember, newMember){
         }); 
     }
 });
-client.on('guildBanAdd',function(guild, user){
-    tools.levelEventNotifier(3, guild, client, 'guildBanAdd', user, guild);
-
+client.on('guildBanAdd',function(guildBan){
+    //Notify moderators
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild).then(function(res){
+        console.debug(res);
+    });
 });
-client.on('guildBanRemove',function(guild, user){
-    tools.levelEventNotifier(3, guild, client, 'guildBanRemove', user, guild);
-}, function(err){console.error('guildBanRemove '+err);});
+
+client.on('guildBanRemove',function(guildBan){
+    //Notify moderators
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanRemove', guildBan.user, guildBan.guild).then(function(res){
+        console.debug(res);
+    });
+});
 
 client.on('guildMemberAdd',function(member){
-    business.notifyNewMember(member);
-}, function(err){console.error('event guildMemberAdd '+err);});
+    business.welcomeNewMember(member);
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberAdd', member).then(function(res){
+        console.debug(res);
+    });
+});
 
 client.on('guildMemberRemove',function(member){
     if(member.user.id != client.user.id){
-        tools.levelEventNotifier(3, member.guild, client, 'guildMemberRemove', member);
+        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberRemove', member).then(function(res){
+            console.debug(res);
+        });
     }else{
         console.error('I cannot notify my own leave');
     }
@@ -722,9 +733,9 @@ client.on('message', function(msg){
                                         if(currentMember.joinedAt > new Date(Date.now()-86400000)){
                                             tools.findByName(msg.guild.roles, 'Muted').then(function(role){
                                                 currentMember.roles.add(role,"Sorry for the inconvenience, we're facing difficulties and I hope you'll be patient enough.").then(function(res){
-                                                    tools.levelEventNotifier(3, msg.guild, client, 'userFrozen', currentMember);
+                                                    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, msg.guild, client, 'userFrozen', currentMember);
                                                 },function(err){
-                                                    tools.levelEventNotifier(3, msg.guild, client, 'warn', 'Despite the raid, a mute role could not be given to user '+currentMember.user.tag);
+                                                    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, msg.guild, client, 'warn', 'Despite the raid, a mute role could not be given to user '+currentMember.user.tag);
                                                     console.error('Despite the raid, a mute role could not be given to user '+currentMember.user.tag+" "+err);
                                                 });
                                             }, function(err){console.error(err);});

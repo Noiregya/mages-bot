@@ -194,16 +194,16 @@ function genericEventNotifier(target, name, currentEvent, parameter2){
                 string = 'General warning: '+currentEvent;
                 break;
             case 'guildBanAdd':
-                string = currentEvent+' has been banned from the '+parameter2+' realm';
+                string = currentEvent.tag+' has been banned from the '+parameter2.name+' realm';
                 break;
             case 'guildBanRemove':
-                string = currentEvent+' has been unbanned from the '+parameter2+' realm';
+                string = currentEvent.tag+' has been unbanned from the '+parameter2.name+' realm';
                 break;
             case 'guildMemberAdd':
-                string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild;
+                string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild.name;
                 break;
             case 'guildMemberRemove':
-                string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild;
+                string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild.name;
                 break;
             case 'userFrozen':
                 string = "Member "+currentEvent.user.tag+" was frozen from "+currentEvent.guild.name+" because of the server's policy.";
@@ -231,8 +231,11 @@ async function findByName(manager, name){ // jshint ignore:line
     return res;
 }
 
-function levelEventNotifier(level, guild, client, name, currentEvent, parameter2){
+function levelEventNotifier(level, guild, name, currentEvent, parameter2){
     dao.getWhiteListedAdmins(guild).then(function(admins){
+        console.log('Admins: ');
+        console.log(admins);
+
         getUsersPower(admins.rows, guild).then(function(powerUsers){
             powerUsers.forEach(function(memberPower){
                 if(memberPower.power <= level){
@@ -244,6 +247,28 @@ function levelEventNotifier(level, guild, client, name, currentEvent, parameter2
             });
         });
     });
+}
+
+//Notify users with a specific permission
+async function permissionEventNotifier(permissionFlag, guild, name, currentEvent, parameter2){
+    let res = 'Notification sent to:';
+    let admins = await dao.getWhiteListedAdmins(guild).catch(function(err){
+        console.error('Error getting whitelisted admins: '+err);
+    });
+    let ids = [];
+    admins.rows.forEach(function(row){
+        ids.push(row.user_id);
+    })
+    let members = await guild.members.fetch({user: ids});
+    members.forEach(function(member){
+        if(member.permissions.has(permissionFlag)){
+            res += '\n' + member.user.tag;
+            genericEventNotifier(member.user, name, currentEvent, parameter2);
+        }else{
+            console.error(member.user.tag + ' could not be notified\n');
+        }
+    });
+    return res;
 }
 
 //Unused for now but might be handy?
@@ -1011,6 +1036,7 @@ module.exports = {
     randomHelloReact: randomHelloReact,
     randomReiReact: randomReiReact,
     levelEventNotifier: levelEventNotifier,
+    permissionEventNotifier: permissionEventNotifier,
     getRandomNation: getRandomNation,
     joinNation: joinNation,
     getShares: getShares,
