@@ -35,14 +35,14 @@ async function checkNewMember(member){
     }else if(member.user.tag.includes('discord.gg/')||member.user.tag.includes('discordapp.com/')||member.user.tag.includes('discord.com/')){
         let res = await member.ban({ reason: 'Name contains an invite link' }).catch(function(err){
             tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'warn', 'Could detect potential raid but not ban user'+
-                                     '\n User: '+member.user.tag+'\nReason: '+err);});
+                                          '\n User: '+member.user.tag+'\nReason: '+err);});
         tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildBanAdd', member.user, member.guild);
         res = 'banned';
     } else if(punishment == 'muted'){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){
             console.error(err);
             tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'warn', 'User is marked as muted but I couldn\'t mute them automatically'+
-                                     '\n User: '+member.user.tag+'\nReason: '+err);
+                                          '\n User: '+member.user.tag+'\nReason: '+err);
         });Ò
         member.roles.add(role,'Muted because on mute list.').catch(function(err){console.error('MUTE'+err);});
         res = 'muted';
@@ -66,21 +66,21 @@ async function raidProtection(member){
     let isFrozen = res.rows[0].is_frozen;
     if (isFrozen){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){console.error(err);});
-            res = member.roles.add(role).catch(function(err){
-                let message = 'Despite the raid, a mute role could not be given to user '+member.user.tag+' '+err;
-                tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'warn', message);
-                console.error(message);
-                return message;
+        res = member.roles.add(role).catch(function(err){
+            let message = 'Despite the raid, a mute role could not be given to user '+member.user.tag+' '+err;
+            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'warn', message);
+            console.error(message);
+            return message;
+        });
+        member.user.createDM().then(function(DM){
+            DM.send('Sorry for the inconvenience, the guild is facing difficulties and you\'ve been muted, a moderator should contact you shortly.').catch(function(err){
+                console.error('Cannot send DM to '+member.user.tag+ ' '+err);
             });
-            member.user.createDM().then(function(DM){
-                DM.send('Sorry for the inconvenience, the guild is facing difficulties and you\'ve been muted, a moderator should contact you shortly.').catch(function(err){
-                    console.error('Cannot send DM to '+member.user.tag+ ' '+err);
-                });
-            }, function(err){
-                console.error(err);
-            });
-            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'userFrozen', member);
-            
+        }, function(err){
+            console.error(err);
+        });
+        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'userFrozen', member);
+
     }
 }
 
@@ -122,20 +122,6 @@ function addRolesToNewMember(member){
     }
 }
 
-/*function hasPermission(member, permission){
-    let hasPermission = false;
-    member.roles.cache.every(function(role){
-        console.log('===============');
-        console.log(role.permissions);
-        console.log(permission);
-       if(rmember.has(permission)){
-           console.log('permission ok');
-           hasPermission = true;
-       }
-    });
-    return hasPermission;
-}*/
-
 async function muteUnmute(client, interaction){
     let message;
     if(interaction.member //Check if this is on a server
@@ -160,22 +146,24 @@ async function muteUnmute(client, interaction){
         });
         if (target._roles.includes(role.id)){
             //Unmute user
-            target.roles.remove(role,"Unmuted by ").catch(function(err){
+            await target.roles.remove(role,"Unmuted by "+interaction.user.username).then(function(res){
+                message = 'User unmuted';
+            },function(err){
                 console.error('MUTE '+err);
                 message = 'Error muting user: '+err;
                 return message;
             });
             //interaction.reply({ content: 'User unmuted', ephemeral: true });
-            message = 'User unmuted';
         } else {
             //Mute user
-            target.roles.add(role,"Muted by ").catch(function(err){
+            await target.roles.add(role,"Muted by "+interaction.user.username).then(function(res){
+                message = 'User muted';
+            },function(err){
                 console.error('MUTE '+err);
                 message = 'Error muting user: '+err;
                 return message;
             });
             //interaction.reply({ content: 'User muted', ephemeral: true });
-            message = 'User muted';
         }
     }else{
         //interaction.reply({ content: 'You are not allowed to mute or unmute this user here.', ephemeral: true });

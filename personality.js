@@ -63,16 +63,12 @@ function reactToMessage(client, msg) {
     }
 }
 
-function sayWithDelay(textToSay, channel){
+async function sayWithDelay(textToSay, channel){
     setTimeout(function(){
-        channel.stopTyping();
+        return channel.send(textToSay);
     }, textToSay.length * 150);
-    return channel.startTyping().then(function(res){
-        return channel.send(textToSay).then(function(res){
-            return res;
-        });
-    });
-
+    let res = await channel.sendTyping();
+    return res;
 }
 
 module.exports = {

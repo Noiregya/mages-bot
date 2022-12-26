@@ -133,8 +133,38 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.reply({ content: 'This should be the list of muted users', ephemeral: true });
                 break;
             case 'whitelist':
-                let res = await business.toggleWhitelist(interaction.member);
-                await interaction.reply({ content: res, ephemeral: true });
+                let resWhitelist = await business.toggleWhitelist(interaction.member);
+                await interaction.reply({ content: resWhitelist, ephemeral: true });
+                break;
+            case 'parrot':
+                if(!interaction.isMessageComponent){
+                    console.log('Not a message component');
+                    await interaction.reply({content: 'Not a message component', ephemeral: true});
+                    break;
+                }
+                await interaction.deferReply({ephemeral: true});
+                //Get the message with the fist two words removed
+                let message = interaction.options.getString('text');
+                let error;
+                let channel = interaction.options.getChannel('channel') ? interaction.options.getChannel('channel') : interaction.channel;
+                if(message){
+                    await personality.sayWithDelay(message, channel).catch(function(err){
+                        console.error('PARROT '+err);
+                        error = err;
+                    });
+                    await interaction.editReply('Message sent successfully');
+                }else{
+                    await interaction.editReply('Please specify message');
+                }
+
+                break;
+            case 'register':
+                let resRegister;
+                if(interaction.inGuild())
+                    resRegister = await interactions.register(interaction.guild);
+                else
+                    resRegister = await interactions.register();
+                await interaction.reply({ content: resRegister, ephemeral: true });
                 break;
         }
     }else if(interaction.isUserContextMenuCommand()){
@@ -145,8 +175,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
                 break;
             case 'register':
-                let res = await interactions.register();
-                await interaction.reply({ content: res, ephemeral: true });
+                let resRegister = await interactions.register();
+                await interaction.reply({ content: resRegister, ephemeral: true });
                 break;
         }        
     }else if(interaction.isMessageContextMenuCommand()){
