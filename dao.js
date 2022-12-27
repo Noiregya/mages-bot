@@ -1,8 +1,28 @@
 const { Pool } = require('pg');
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-});
+const fs = require('fs');
+
+const ssl_directory = process.env.SSL_DIRECTORY;
+//TODO: Catch DAO errors in calls
+
+const config = {
+  connectionString: process.env.DATABASE_STRING,
+  // this object will be passed to the TLSSocket constructor
+  ssl: {
+    rejectUnauthorized: false,
+    ca: fs.readFileSync(ssl_directory+'/root.crt').toString(),
+    key: fs.readFileSync(ssl_directory+'/postgresql.key').toString(),
+    cert: fs.readFileSync(ssl_directory+'/postgresql.crt').toString(),
+  },
+}
+
+const pool = new Pool(config);
+pool
+  .connect()
+  .then(client => {
+    console.log('Connected to database')
+    client.release()
+  })
+  .catch(err => console.error('error connecting', err.stack));
 
 function getNations(guild){
     var query = {
