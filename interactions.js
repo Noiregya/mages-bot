@@ -1,13 +1,9 @@
 const { REST, Routes } = require('discord.js');
-//const { clientId, guildId, token } = require('./config.json');
 const fs = require('node:fs');
 const token = process.env.TOKEN;
 const applicationId = process.env.APPLICATION_ID || 'not set';
 
 const commands = [];
-// Grab all the command files from the commands directory you created earlier
-
-// Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
 
 // Construct and prepare an instance of the REST module
 const rest = new REST({ version: '10' }).setToken(token);
@@ -33,9 +29,7 @@ async function register(guild){
         }else{//set global commands
             const commandFiles = fs.readdirSync('./commands/global').filter(file => file.endsWith('.js'));
             for (const file of commandFiles) {
-                console.log(file);
                 const command = require(`./commands/global/${file}`);
-                console.log(command);
                 commands.push(command.data.toJSON());
             }
 
@@ -45,8 +39,7 @@ async function register(guild){
                 { body: commands },
             );
         }
-        let res = `Successfully reloaded ${data.length} application (/) commands.`
-        console.log(res);
+        let res = `Successfully registered ${data.length} application (/) commands.`
         return res;
     } catch (error) {
         // And of course, make sure you catch and log any errors!

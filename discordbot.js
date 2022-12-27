@@ -2,12 +2,12 @@
 
 const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 
+//Discord intents
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildBans,
     GatewayIntentBits.GuildEmojisAndStickers,
-    //GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.DirectMessages,
@@ -16,14 +16,6 @@ const client = new Client({ intents: [
     GatewayIntentBits.AutoModerationConfiguration,
     GatewayIntentBits.AutoModerationExecution
 ] });
-
-/*TODO:
-Server permissions only
-Automoderation
-Slash commands
-Right click commands
-Message interactions
-*/
 
 const Token = process.env.TOKEN;
 const Owner = process.env.OWNER;
@@ -65,8 +57,9 @@ patchEmitter(client);
 */
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS //////////////////////////////
 
-//Client initialisation
+///// On even ready /////
 client.on('ready', function(){
+    //Initialize client
     client.application.fetch().then(function(application){
         ownerUser = application.owner;
         console.log('Welcome to MAGES.'+'\nOwner: '+ownerUser.tag);
@@ -87,8 +80,7 @@ client.on('ready', function(){
             console.log('Available guild '+guild.name)
         })
     });
-    //interactions.initialize();
-    //TODO useful to fix starboard????
+    //TODO cache messages to fix starboard?
     /*.cache.array().forEach(function(guild){//cache channel messages to allow reaction/logs
         dao.getInfoChannel(guild).then(function(infoChannel){
             let channel = guild.channels.cache.get(infoChannel);
@@ -100,7 +92,7 @@ client.on('ready', function(){
             }
         }, function(err){console.error("Caching "+err);});
     });*/
-    //TODO: Periodic check
+    //TODO: Periodic check for share messages
     /*client.setInterval(function(){
         client.guilds.cache.array().forEach(function(thisguild){
             tools.updateShareMessage(thisguild);
@@ -117,96 +109,52 @@ client.on('ready', function(){
     //Load sheduled events
     tools.loadTimedEvents(client);*/
 
-});//on event "ready" end
+});
+/////On event "ready" end/////
 
 client.on(Events.InteractionCreate, async interaction => {
-    //if (!interaction.isChatInputCommand()) return;
-    //console.log(interaction);
-    //Register commands
-
+    let res;
     if(interaction.isChatInputCommand()){
         switch (String(interaction.commandName)){
-            case 'yo':
-                await interaction.reply({ content: 'Secret Pong!', ephemeral: true });
-                break;
             case 'mute':
                 await interaction.reply({ content: 'This should be the list of muted users', ephemeral: true });
                 break;
             case 'whitelist':
-                let resWhitelist = await business.toggleWhitelist(interaction.member);
-                await interaction.reply({ content: resWhitelist, ephemeral: true });
+                res = await business.toggleWhitelist(interaction.member);
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'parrot':
-                if(!interaction.isMessageComponent){
-                    console.log('Not a message component');
-                    await interaction.reply({content: 'Not a message component', ephemeral: true});
-                    break;
-                }
-                await interaction.deferReply({ephemeral: true});
-                //Get the message with the fist two words removed
-                let message = interaction.options.getString('text');
-                let error;
-                let channel = interaction.options.getChannel('channel') ? interaction.options.getChannel('channel') : interaction.channel;
-                if(message){
-                    await personality.sayWithDelay(message, channel).catch(function(err){
-                        console.error('PARROT '+err);
-                        error = err;
-                    });
-                    await interaction.editReply('Message sent successfully');
-                }else{
-                    await interaction.editReply('Please specify message');
-                }
-
+                res = await business.parrot(interaction);
+                if(interaction.deferred)
+                    interaction.editReply(res);
+                else
+                    interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'register':
-                let resRegister;
                 if(interaction.inGuild())
-                    resRegister = await interactions.register(interaction.guild);
+                    res = await interactions.register(interaction.guild);
                 else
-                    resRegister = await interactions.register();
-                await interaction.reply({ content: resRegister, ephemeral: true });
+                    res = await interactions.register();
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
         }
     }else if(interaction.isUserContextMenuCommand()){
         switch (String(interaction.commandName)){
             case 'toggle mute':
-                business.muteUnmute(client, interaction).then(function(res){
-                    interaction.reply({ content: res, ephemeral: true });
-                });
+                res = await business.muteUnmute(client, interaction);
+                interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'register':
-                let resRegister = await interactions.register();
-                await interaction.reply({ content: resRegister, ephemeral: true });
+                res = await interactions.register();
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
         }        
     }else if(interaction.isMessageContextMenuCommand()){
-
+        //Message context menu commands
     }
 
 });
 
-function sendNext(pinnedArray ,i ,notLast ,targetChannel){
-    if(i >= 0 && i < pinnedArray.length-1 || i == pinnedArray.length-1 && !notLast){
-        tools.convertMessageToEmbed(pinnedArray[i], '📌 ').then(function(toSend){
-            toSend.forEach(function(embed){
-                targetChannel.send(embed).then(function(res){
-                    if(pinnedArray[i].pinned){
-                        pinnedArray[i].unpin().catch(function(err){
-                            console.error("unpin() "+err);
-                        });
-                    }
-                    sendNext(pinnedArray, i-1, notLast, targetChannel);
-                }, function(err){
-                    console.error("SECURE "+err);
-                });
-            });
-        });
-    }else if(i == pinnedArray.length-1){
-        sendNext(pinnedArray, i-1, notLast, targetChannel);
-    }
-}
-
-//(target, client, name, currentEvent, parameter2)
 client.on('warn',function(warn){
     tools.genericEventNotifier(ownerUser, 'warn', warn);
 });
@@ -239,6 +187,7 @@ client.on('guildMemberUpdate',function(oldMember, newMember){
         }); 
     }
 });
+
 client.on('guildBanAdd',function(guildBan){
     //Notify moderators
     tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild).then(function(res){
@@ -270,7 +219,9 @@ client.on('guildMemberRemove',function(member){
     }
 });
 
-
+//TODO: Join nations message with buttons
+//TODO: MessageReactionAddEvent
+/* 
 client.on('messageReactionAdd', function(messageReaction, user){
     let message = messageReaction.message;
     let guild = message.guild;
@@ -313,7 +264,9 @@ client.on('messageReactionAdd', function(messageReaction, user){
                                             }else{
                                                 //Remove unneeded reactions
                                                 suspectMessage.reactions.cache.array().forEach(function(reaction){
-                                                    reaction.users.remove(user).catch(function(err){/*Silent error*/});
+                                                    reaction.users.remove(user).catch(function(err){
+                                                        //Silent error
+                                                    });
                                                 });
                                             }
                                         }
@@ -346,7 +299,9 @@ client.on('messageReactionAdd', function(messageReaction, user){
                                     }else{
                                         //Remove unneeded reactions
                                         suspectMessage.reactions.cache.array().forEach(function(reaction){
-                                            reaction.users.remove(user).catch(function(err){/*Silent error*/});
+                                            reaction.users.remove(user).catch(function(err){
+                                                //Silent error
+                                            });
                                         });
                                     }
                                 }
@@ -360,7 +315,10 @@ client.on('messageReactionAdd', function(messageReaction, user){
         }).catch(function(err){console.error(err);});
     }
 });
+*/
 
+//Replace with leave nation event
+/*
 client.on('messageReactionRemove', function(messageReaction, user){
     let guild = messageReaction.message.guild;
     if(guild){
@@ -381,14 +339,34 @@ client.on('messageReactionRemove', function(messageReaction, user){
         });    
     }
 });
+*/
 
+//TODO: React to message for personality
+/*
 client.on('messageUpdate', function(oldMessage, newMessage){
     if(oldMessage.content != newMessage.content && newMessage.author.id != client.user.id){
         personality.reactToMessage(client, newMessage);
     }
 });
+*/
 
+//TODO: List muted users
+//TODO: Pre ban users
+//TODO: Create polls
+//TODO: Auto administration
+//TODO: New permission management for guild admins
+//TODO: Web interface setup
+    //TODO: Starboard
+    //TODO: Permissions
+    //TODO: Welcome channel
+    //TODO: Nations
+    //TODO: Pin channel
+//TODO: SECURE COMMAND equivalent: copies pinned messages to a pin channel
+//TODO: Activity monitor: Keep track of active users to prune inactive ones
+//TODO: RELOAD COMMAND EQUIVALENT: Send necessary messages in the welcome channel
+//TODO: FREEZE/UNFREEZE server: Mutes all new users in case of a raid
 //Everyone's messages watch
+/*
 client.on('message', function(msg){
     if(msg.content && msg.author.id != client.user.id){
         personality.reactToMessage(client, msg);
@@ -543,7 +521,7 @@ client.on('message', function(msg){
                                             notLast = true;
                                         }
                                     }
-                                    sendNext(pinnedArray ,i ,notLast ,targetChannel);
+                                    tools.sendNext(pinnedArray ,i ,notLast ,targetChannel);
                                 }, function(err){
                                     console.error("SECURE "+err);
                                 });
@@ -595,7 +573,7 @@ client.on('message', function(msg){
                                 switch(parsedMessage.length){
                                     case 5:
                                         parsedMessage.push('unset');
-                                        /* falls through */
+                                        // falls through 
                                     case 6:
                                         tools.findByName(msg.guild.roles, parsedMessage[2]).then(function(role){
                                             if(role === undefined){
@@ -653,7 +631,7 @@ client.on('message', function(msg){
                             }
                         }
                         if (msg.member == msg.guild.owner||bestPower<=3){
-                            /*if(parsedMessage[1].toUpperCase()=='SENDTOSTARBOARD'){
+                            if(parsedMessage[1].toUpperCase()=='SENDTOSTARBOARD'){
                                 if(parsedMessage.length >= 4){
                                     dao.getStarboardChannel(msg.guild).then(function(starboardchannel) {
                                         let channel = msg.guild.channels.cache.get(starboardchannel);
@@ -667,7 +645,7 @@ client.on('message', function(msg){
                                     });
 
                                 } 
-                            }else */if(parsedMessage[1].toUpperCase() == 'PARROT'){
+                            }else if(parsedMessage[1].toUpperCase() == 'PARROT'){
                                 if (parsedMessage.length >= 4){
                                     try{
                                         var targetChannel = tools.resolveChannelString(msg.guild, parsedMessage[2]);
@@ -684,7 +662,7 @@ client.on('message', function(msg){
                                     }
                                 }
                             }
-                            /* On MUTE */
+                            // On MUTE 
                             else if(parsedMessage[1].toUpperCase() == 'MUTE'){
                                 if (parsedMessage.length == 4){
                                     var member = msg.guild.members.resolve(parsedMessage[3]);
@@ -716,7 +694,7 @@ client.on('message', function(msg){
                                         });
                                     }
                                 }
-                                /* On BAN */
+                                // On BAN 
                             }else if (parsedMessage[1].toUpperCase() == 'BAN'){
                                 if(parsedMessage.length == 4){
                                     msg.guild.members.fetch(parsedMessage[3]).then(function(member){
@@ -861,7 +839,6 @@ client.on('message', function(msg){
             }
         }
     }
-}
-         );
+});*/
 
 client.login(Token);

@@ -1,8 +1,10 @@
 const Discord = require('discord.js');
 const dao = require('./dao');
 
+//TODO: Make new website
 const website = "http://mages-bot.alwaysdata.net/";
 
+//TODO: Rewrite help message
 const help = ["List of available commands:"+
               "\`\`\`.p help - DM this message"+
               "\n.p help levels - Get explaination about the levels"+
@@ -1014,6 +1016,27 @@ function removeRoleFromInactive(guild){
     });
 }
 
+function sendNext(pinnedArray ,i ,notLast ,targetChannel){
+    if(i >= 0 && i < pinnedArray.length-1 || i == pinnedArray.length-1 && !notLast){
+        tools.convertMessageToEmbed(pinnedArray[i], '📌 ').then(function(toSend){
+            toSend.forEach(function(embed){
+                targetChannel.send(embed).then(function(res){
+                    if(pinnedArray[i].pinned){
+                        pinnedArray[i].unpin().catch(function(err){
+                            console.error("unpin() "+err);
+                        });
+                    }
+                    sendNext(pinnedArray, i-1, notLast, targetChannel);
+                }, function(err){
+                    console.error("SECURE "+err);
+                });
+            });
+        });
+    }else if(i == pinnedArray.length-1){
+        sendNext(pinnedArray, i-1, notLast, targetChannel);
+    }
+}
+
 module.exports = {
     resolveChannelString:resolveChannelString,
     website: website,
@@ -1055,5 +1078,6 @@ module.exports = {
     executeTimedEvent: executeTimedEvent,
     consumeTimedEvent: consumeTimedEvent,
     loadTimedEvents: loadTimedEvents,
-    stripLinks: stripLinks
+    stripLinks: stripLinks,
+    sendNext: sendNext
 };

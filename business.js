@@ -1,6 +1,7 @@
 const tools = require('./tools');
 const dao = require('./dao');
 const { PermissionsBitField } = require('discord.js');
+const personality = require('./personality');
 
 
 //Notify a new member in the dedicated welcome channel (if any)
@@ -200,8 +201,28 @@ async function toggleWhitelist(member){
     return message;
 }
 
+async function parrot(interaction){
+    if(!interaction.isMessageComponent){
+        return 'Error: Not a message component';
+    }
+    await interaction.deferReply({ephemeral: true});
+    //Get the message with the fist two words removed
+    let message = interaction.options.getString('text');
+    let channel = interaction.options.getChannel('channel') ? interaction.options.getChannel('channel') : interaction.channel;
+    if(message){
+        await personality.sayWithDelay(message, channel).catch(function(err){
+            console.error('PARROT '+err);
+            return err;
+        });
+        return ('Message sent successfully');
+    }else{
+        return ('Please specify message');
+    }
+}
+
 module.exports = {
     welcomeNewMember: welcomeNewMember,
     muteUnmute: muteUnmute,
-    toggleWhitelist: toggleWhitelist
+    toggleWhitelist: toggleWhitelist,
+    parrot: parrot
 }
