@@ -62,6 +62,7 @@ async function checkNewMember(member){
     return res;
 }
 
+//TODO: Test function
 async function raidProtection(member){
     let res = await dao.isFrozen(member.guild).catch(function(err){console.log('guildMemberAdd '+err);});
     let isFrozen = res.rows[0].is_frozen;
@@ -123,6 +124,8 @@ function addRolesToNewMember(member){
     }
 }
 
+//Mute or unmute user
+//TODO: Muted role by ID instead of name
 async function muteUnmute(client, interaction){
     let message;
     if(interaction.member //Check if this is on a server
@@ -154,7 +157,6 @@ async function muteUnmute(client, interaction){
                 message = 'Error muting user: '+err;
                 return message;
             });
-            //interaction.reply({ content: 'User unmuted', ephemeral: true });
         } else {
             //Mute user
             await target.roles.add(role,"Muted by "+interaction.user.username).then(function(res){
@@ -164,15 +166,14 @@ async function muteUnmute(client, interaction){
                 message = 'Error muting user: '+err;
                 return message;
             });
-            //interaction.reply({ content: 'User muted', ephemeral: true });
         }
     }else{
-        //interaction.reply({ content: 'You are not allowed to mute or unmute this user here.', ephemeral: true });
         message = 'You are not allowed to mute or unmute this user here.';
     }
     return message;
 }
 
+//Add or remove user from the notification witelist
 async function toggleWhitelist(member){
     let message;
     if(member){
@@ -201,6 +202,7 @@ async function toggleWhitelist(member){
     return message;
 }
 
+//Repeat a specified message
 async function parrot(interaction){
     if(!interaction.isMessageComponent){
         return 'Error: Not a message component';
@@ -221,8 +223,8 @@ async function parrot(interaction){
 }
 
 module.exports = {
-    welcomeNewMember: welcomeNewMember,
     muteUnmute: muteUnmute,
+    parrot: parrot,
     toggleWhitelist: toggleWhitelist,
-    parrot: parrot
+    welcomeNewMember: welcomeNewMember
 }

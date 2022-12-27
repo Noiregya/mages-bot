@@ -133,7 +133,7 @@ client.on(Events.InteractionCreate, async interaction => {
             case 'register':
                 if(interaction.inGuild())
                     res = await interactions.register(interaction.guild);
-                else
+                else //TODO: Check if the command was issued by the bot owner
                     res = await interactions.register();
                 await interaction.reply({ content: res, ephemeral: true });
                 break;

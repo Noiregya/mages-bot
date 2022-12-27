@@ -8,11 +8,11 @@ const commands = [];
 // Construct and prepare an instance of the REST module
 const rest = new REST({ version: '10' }).setToken(token);
 
-// and deploy your commands!
+//Deploy the commands
 async function register(guild){
     try {
         let data;
-        if(guild){   
+        if(guild){//The commands need to be deployed at a guild level
             const commandFiles = fs.readdirSync('./commands/guild').filter(file => file.endsWith('.js'));
             for (const file of commandFiles) {
                 const command = require(`./commands/guild/${file}`);
@@ -26,7 +26,7 @@ async function register(guild){
                 Routes.applicationGuildCommands(applicationId, guild.id),
                 { body: commands },
             );
-        }else{//set global commands
+        }else{//The commands need to be deployed at the global level
             const commandFiles = fs.readdirSync('./commands/global').filter(file => file.endsWith('.js'));
             for (const file of commandFiles) {
                 const command = require(`./commands/global/${file}`);
@@ -49,6 +49,4 @@ async function register(guild){
 
 module.exports = {
     register: register,
-    //COMMAND_TYPE: COMMAND_TYPE,
-    //OPTION_TYPE: OPTION_TYPE
 };
