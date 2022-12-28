@@ -222,9 +222,43 @@ async function parrot(interaction){
     }
 }
 
+async function preban(interaction){
+    if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
+        let userId = interaction.options.getString('userid');
+        let regex = new RegExp(/^\d{17,19}$/);
+        let isSnowflake = regex.test(userId);
+        if(isSnowflake){
+            dao.addBan(interaction.guildId, userId);
+            return 'User ' + userId + ' was banned from the server';
+        }else{
+            return 'Please enter a valid user ID';
+        }
+    }else{
+        return 'You don\'t have sufficient permissions for this command';
+    }
+}
+
+async function unban(interaction){
+    if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
+        let userId = interaction.options.getString('userid');
+        let regex = new RegExp(/^\d{17,19}$/);
+        let isSnowflake = regex.test(userId);
+        if(isSnowflake){
+            dao.unBan(interaction.guildId, userId);
+            return 'User ' + userId + ' was unbanned';
+        }else{
+            return 'Please enter a valid user ID';
+        }
+    }else{
+        return 'You don\'t have sufficient permissions for this command';
+    }
+}
+
 module.exports = {
     muteUnmute: muteUnmute,
     parrot: parrot,
     toggleWhitelist: toggleWhitelist,
-    welcomeNewMember: welcomeNewMember
+    welcomeNewMember: welcomeNewMember,
+    preban: preban,
+    unban: unban
 }

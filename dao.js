@@ -133,6 +133,17 @@ function addBan(guildId, id){
     });
 }
 
+function unBan(guildId, id){
+    let query = {
+        text: 'DELETE FROM punishments '+
+        "WHERE guild = $1 AND id = $2 AND punishment = $3 ",
+        values: [guildId,id,"banned"]
+    };
+    return pool.query(query).catch(function(err){
+        console.error('dao.addMute '+err);
+    });
+}
+
 function removePunishment(guild, id){
     let query = {
         text: 'DELETE from punishments where guild=$1 AND id=$2;',
@@ -608,6 +619,7 @@ module.exports = {
     setStarAmount:setStarAmount,
     setStarboardChannel:setStarboardChannel,
     setWelcomeChannel: setWelcomeChannel,
+    unBan: unBan,
     updateActiveDelay: updateActiveDelay,
     updateActiveRole: updateActiveRole,
     updateFriendliness: updateFriendliness,
