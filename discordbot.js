@@ -1,5 +1,3 @@
-//process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-
 const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 
 //Discord intents
@@ -20,7 +18,6 @@ const client = new Client({ intents: [
 const Token = process.env.TOKEN;
 const Owner = process.env.OWNER;
 var ownerUser;
-const events = require('events');
 const tools = require('./tools');
 const dao = require('./dao');
 const business = require('./business');
@@ -154,7 +151,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
 });
-
+//TODO: Variablilize events
 client.on('warn',function(warn){
     tools.genericEventNotifier(ownerUser, 'warn', warn);
 });
