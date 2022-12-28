@@ -134,6 +134,14 @@ client.on(Events.InteractionCreate, async interaction => {
                     res = await interactions.register();
                 await interaction.reply({ content: res, ephemeral: true });
                 break;
+            case 'preban':
+                res = await business.preban(interaction);
+                await interaction.reply({ content: res, ephemeral: true});
+                break;
+            case 'unban':
+                res = await business.unban(interaction);
+                await interaction.reply({ content: res, ephemeral: true});
+                break;
         }
     }else if(interaction.isUserContextMenuCommand()){
         switch (String(interaction.commandName)){
@@ -348,7 +356,6 @@ client.on('messageUpdate', function(oldMessage, newMessage){
 */
 
 //TODO: List muted users
-//TODO: Pre ban users
 //TODO: Create polls
 //TODO: Auto administration
 //TODO: New permission management for guild admins
