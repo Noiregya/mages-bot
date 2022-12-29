@@ -140,7 +140,7 @@ function unBan(guildId, id){
         values: [guildId,id,"banned"]
     };
     return pool.query(query).catch(function(err){
-        console.error('dao.addMute '+err);
+        console.error('dao.unBan '+err);
     });
 }
 
