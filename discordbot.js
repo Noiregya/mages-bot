@@ -23,6 +23,7 @@ const dao = require('./dao');
 const business = require('./business');
 const personality = require('./personality');
 const interactions = require('./interactions');
+const webpage = require('./webpage.js');
 const intervalStarted = false;
 const dayInMS = 86400000;
 

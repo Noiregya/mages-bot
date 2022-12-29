@@ -28,9 +28,10 @@
     "body-parser": "^1.20.1",
     "discord-interactions": "^3.2.0",
     "discord.js": "^14.7.1",
-    "dotenv": "^16.0.3", 
-    "express": "^4.18.2", 
-    "pg": "^8.6.0"
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "pg": "^8.6.0",
+    "undici": "^5.14.0"
   },
   "bugs": {
     "url": "https://github.com/Noiregya/mages-bot/issues"
