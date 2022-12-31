@@ -115,7 +115,8 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.isChatInputCommand()){
         switch (String(interaction.commandName)){
             case 'mute':
-                await interaction.reply({ content: 'This should be the list of muted users', ephemeral: true });
+                res = await business.muteList(interaction);
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'whitelist':
                 res = await business.toggleWhitelist(interaction.member);

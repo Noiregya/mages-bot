@@ -173,7 +173,17 @@ async function muteUnmute(client, interaction){
     return message;
 }
 
-//Add or remove user from the notification witelist
+//Displays a list of muted users
+async function muteList(interaction){
+    let mutedUsers = await dao.getMutes(interaction.guildId);
+    let prettyList = '';
+    mutedUsers.rows.forEach(function(row){
+        prettyList += '<@' + row.id + '>\n';
+    });
+    return prettyList;
+}
+
+//Add or remove user from the notification whitelist
 async function toggleWhitelist(member){
     let message;
     if(member){
@@ -222,6 +232,7 @@ async function parrot(interaction){
     }
 }
 
+//Ban a user before they join
 async function preban(interaction){
     if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
         let userId = interaction.options.getString('userid');
@@ -238,6 +249,7 @@ async function preban(interaction){
     }
 }
 
+//Unbans a user
 async function unban(interaction){
     if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
         let userId = interaction.options.getString('userid');
@@ -256,6 +268,7 @@ async function unban(interaction){
 
 module.exports = {
     muteUnmute: muteUnmute,
+    muteList: muteList,
     parrot: parrot,
     toggleWhitelist: toggleWhitelist,
     welcomeNewMember: welcomeNewMember,
