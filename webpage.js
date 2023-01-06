@@ -1,22 +1,145 @@
 const fs = require('node:fs');
 const express = require('express');
+const session = require('express-session');
 const { request } = require('undici');
-const app = express();
-const root = __dirname + '/www/';
-const index = 'index.html';
-const authentifiedPage = 'settings.html';
+const dao = require('./dao');
 const port = process.env.WEBPORT || 80;
 const publicAddress = process.env.PUBLIC_ADDRESS;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
 const authUrl = process.env.AUTH_URL;
+const cookieSecret = process.env.COOKIE_SECRET;
 
-const authentificationBlock = '<div id="info">Please log in before you continue</div>\n'+
-'<a id="login" style="display: block;" href="'+authUrl+'">Identify Yourself</a>';
+const root = __dirname + '/www/';
+const index = 'index.html';
+const settingsPage = 'settings';
 
-console.log(root);
+const app = express();
+
+app.use(session({
+  secret: cookieSecret,
+  resave: false,
+  saveUninitialized: true,
+}));
+//TODO: https
+// Configuring sessions
+/*
+const oneDay = 1000 * 60 * 60 * 24;
+app.use(session({
+  secret: cookieSecret,
+  saveUninitialized: true,
+  cookie: { maxAge: oneDay,
+            secure: true },
+  resave: false
+})); 
+*/
+
+// middleware to test if authenticated
+function isAuthenticated(req, res, next) {
+  if (req.session.user) next();
+  else next('route');
+}
+
+//Unified method of adding business information to an error object before throwing it
+function errorContext(err, message, secret) {
+  if (!err.business) err.business = []; //Create array if it doesn't exist
+  let rank = err.business.push(message) - 1; //Adds the message to the array and returns the index of that element
+  //Information useful for debugging but that we don't want to show the end user
+  if (secret) {
+    if (!err.secret) err.secret = [];
+    err.secret[rank] = secret; //Secret placed at the same index as the business message
+  }
+  return err;
+}
+
+function errorDisplay(err) {
+  let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n<table>';
+  for (i = 0; i < err.business.length; i++) {
+    string += '<tr><td>' + err.business[i] + '</td></tr>\n';
+  }
+  return string + '</table>';
+}
+
+function errorLog(err) {
+  let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
+  for (i = 0; i < err.business.length; i++) {
+    string += err.name + ' : ' + err.business[i] + ' ' + err.secret ? [i] : '' + '\n';
+  }
+  console.error(string);
+}
+
+//Connect to discord by getting the token then the user object
+async function connect(code) {
+  let user;
+  if (code) {
+    let token = await getDiscordToken(code).catch(err => {
+      throw errorContext(err, 'Unable to get discord token with code ' + code);
+    });
+    if (token) {
+      return await getDiscordUser(token).catch(err => {
+        throw errorContext(err, 'Unable to get discord user with token', token); //Token is only going to be visible in the logs
+      });
+    }
+  } else {
+    throw errorContext({ name: 'missingApiCode', message: 'at webpage.connect' }, 'API Code missing from the URL');
+  }
+}
+
+//Login logic, redirected from discord
+app.get('/login', function (req, res, next) {
+  //Checks if a code is provided
+  if (!req.query || !req.query.code) res.redirect(401, '/' + settingsPage);
+  //Attempts to connect to discord API
+  connect(req.query.code).then(function (user) {
+    //Prevent session fixing attacks
+    req.session.regenerate(function (err) {
+      if (err) {
+        next(errorContext(err, 'Unable to regenerate session'));
+      }
+      req.session.user = user;//Store the user in the session
+      //Todo: Save session in the database here
+      // save the session before redirection to ensure page
+      // load does not happen before session is saved
+      req.session.save(function (err) {
+        if (err) {
+          return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+        }
+        res.redirect('/' + settingsPage);
+      });
+    });
+
+  }, function (err) {
+    next(errorContext(err, 'Could not authentify you to the discord API'));
+  });
+});
+
+//Logout logic
+app.get('/logout', function (req, res, next) {
+  // clear the user from the session object and save.
+  // this will ensure that re-using the old session id
+  // does not have a logged in user
+  req.session.user = null;
+
+  //TODO: Remove cookie from the database
+
+  req.session.save(function (err) {
+    if (err) next(err);
+
+    // regenerate the session, which is good practice to help
+    // guard against forms of session fixation
+    req.session.regenerate(function (err) {
+      if (err) next(err);
+      res.redirect('/' + settingsPage);
+    });
+  });
+});
+
+const authentificationBlock = '<div id="info">Please log in before you continue</div>\n' +
+  '<a id="login" style="display: block;" href="' + authUrl + '">Identify Yourself</a>';
+
+//Register all files to endpoints in the www folder
 fs.readdirSync(root).forEach(file => {
-  if (file != authentifiedPage) {
+  if (file != settingsPage + '.html') {
     app.get('/' + file, (req, res) => {
       var options = {
         root: root
@@ -26,57 +149,75 @@ fs.readdirSync(root).forEach(file => {
   }
 });
 
+async function getDiscordToken(code) {
+  let redirect_uri = publicAddress + 'login';
+  //Get the token from Discord
+  const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
+    method: 'POST',
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri,
+      scope: 'identify'
+    }).toString(),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+  });
+  let res = await tokenResponseData.body.json();
+  if (res.error) throw ({ name: res.error, message: res.error_description });
+  return res;
+}
+
+async function getDiscordUser(oauthData) {
+  //Get the identification data from the token
+  userResult = await request('https://discord.com/api/users/@me', {
+    headers: {
+      authorization: `${oauthData.token_type} ${oauthData.access_token}`, //oauthData.refresh_token, oauthData.expires_in
+    },
+  });
+  //Fill the user object
+  let user = await userResult.body.json();
+  if (user.error) throw ({ name: user.error, message: user.error_description });
+  return user;
+}
+
 //TODO: Implement CRSF attack protection https://discordjs.guide/oauth2/#implicit-grant-flow
 //TODO: Maintain sessions
-//TODO: Refresh token
-app.get('/' + authentifiedPage, async ({ query }, response) => {
-  const { code } = query;
-  let userResult;
-  let user;
-  if (code) {
-    try {
-      const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
-        method: 'POST',
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code,
-          grant_type: 'authorization_code',
-          redirect_uri: publicAddress + authentifiedPage,
-          scope: 'identify',
-        }).toString(),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-      });
+//TODO: Refresh token?
 
-      const oauthData = await tokenResponseData.body.json();
-      userResult = await request('https://discord.com/api/users/@me', {
-        headers: {
-          authorization: `${oauthData.token_type} ${oauthData.access_token}`,
-        },
-      });
-      user = await userResult.body.json();
-    } catch (error) {
-      // NOTE: An unauthorized token will not throw an error
-      // tokenResponseData.statusCode will be 401
-      console.error(error);
-    }
-  }
-
+//Page for authentified user
+app.get('/' + settingsPage, isAuthenticated, async (req, response, next) => {
+  let user = req.session.user;
   //Load the authentification URL parameter
-  fs.readFile(root+authentifiedPage, 'utf8', function (err,data) {
-    if (err) {
-      return console.log(err);
+  fs.readFile(root + settingsPage + '.html', 'utf8', function (fileReadError, data) {
+    if (fileReadError) {
+      return next(errorContext(fileReadError));
     }
-
-    if(user && user.id){
-      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, 'Welcome '+user.username+'#'+user.discriminator);
-    }else{
-      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock);
-    }
+    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, 'Welcome ' + user.username + '#' + user.discriminator +
+      ' <a href="/logout">log out</a>');
     return response.send(result);
   });
+});
+
+//Page for unauthentificated user
+app.get('/' + settingsPage, async (req, response, next) => {
+  //Load the authentification URL parameter
+  fs.readFile(root + settingsPage + '.html', 'utf8', function (fileReadError, data) {
+    if (fileReadError) {
+      return next(errorContext(fileReadError));
+    }
+    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock);
+    return response.send(result);
+  });
+});
+
+//Unformatted error display
+app.use(function (err, req, res, next) {
+  errorLog(err);
+  res.status(500).send(errorDisplay(err));
 });
 
 app.listen(port, () => {
