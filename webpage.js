@@ -12,7 +12,6 @@ const cookieSecret = process.env.COOKIE_SECRET;
 
 const root = __dirname + '/www/';
 const index = 'index.html';
-const settingsPage = 'settings';
 
 const app = express();
 
@@ -33,6 +32,17 @@ app.use(session({
   resave: false
 })); 
 */
+
+function generateRandomString() {
+  let randomString = '';
+  const randomNumber = Math.floor(Math.random() * 10);
+
+  for (let i = 0; i < 20 + randomNumber; i++) {
+    randomString += String.fromCharCode(33 + Math.floor(Math.random() * 94));
+  }
+
+  return randomString;
+}
 
 // middleware to test if authenticated
 function isAuthenticated(req, res, next) {
@@ -63,13 +73,15 @@ function errorDisplay(err) {
 function errorLog(err) {
   let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
   for (i = 0; i < err.business.length; i++) {
-    string += err.name + ' : ' + err.business[i] + ' ' + err.secret ? [i] : '' + '\n';
+    string += err.name + ' : ' + err.business[i];
+    if(err.secret[i]) string += ' ' + err.secret[i];
+    string += '\n'
   }
   console.error(string);
 }
 
 //Connect to discord by getting the token then the user object
-async function connect(code) {
+async function connect(code, state) {
   let user;
   if (code) {
     let token = await getDiscordToken(code).catch(err => {
@@ -79,6 +91,8 @@ async function connect(code) {
       return await getDiscordUser(token).catch(err => {
         throw errorContext(err, 'Unable to get discord user with token', token); //Token is only going to be visible in the logs
       });
+    } else {
+      throw errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'There was an issue with the token', token);
     }
   } else {
     throw errorContext({ name: 'missingApiCode', message: 'at webpage.connect' }, 'API Code missing from the URL');
@@ -88,23 +102,28 @@ async function connect(code) {
 //Login logic, redirected from discord
 app.get('/login', function (req, res, next) {
   //Checks if a code is provided
-  if (!req.query || !req.query.code) res.redirect(401, '/' + settingsPage);
+  if (!req.query || !req.query.code) res.redirect(401, '/');
+  //Checks for clickjacking
+  if (req.session.state !== req.query.state)
+    return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
   //Attempts to connect to discord API
-  connect(req.query.code).then(function (user) {
+  connect(req.query.code,).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
         next(errorContext(err, 'Unable to regenerate session'));
       }
       req.session.user = user;//Store the user in the session
+      //Keep the right tab after redirection
+      req.session.page = 'settings';
       //Todo: Save session in the database here
-      // save the session before redirection to ensure page
+      // save the session to the store before redirection to ensure page
       // load does not happen before session is saved
       req.session.save(function (err) {
         if (err) {
           return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
         }
-        res.redirect('/' + settingsPage);
+        res.redirect('/');
       });
     });
 
@@ -129,17 +148,19 @@ app.get('/logout', function (req, res, next) {
     // guard against forms of session fixation
     req.session.regenerate(function (err) {
       if (err) next(err);
-      res.redirect('/' + settingsPage);
+      res.redirect('/');
     });
   });
 });
 
-const authentificationBlock = '<div id="info">Please log in before you continue</div>\n' +
-  '<a id="login" style="display: block;" href="' + authUrl + '">Identify Yourself</a>';
+function authentificationBlock(state) {
+  return '<div id="info">Please log in before you continue</div>\n' +
+    '<a id="login" style="display: block;" href="' + authUrl + '&state=' + state + '">Identify Yourself</a>'
+}
 
 //Register all files to endpoints in the www folder
 fs.readdirSync(root).forEach(file => {
-  if (file != settingsPage + '.html') {
+  if (file != index) {
     app.get('/' + file, (req, res) => {
       var options = {
         root: root
@@ -184,33 +205,58 @@ async function getDiscordUser(oauthData) {
   return user;
 }
 
-//TODO: Implement CRSF attack protection https://discordjs.guide/oauth2/#implicit-grant-flow
-//TODO: Maintain sessions
 //TODO: Refresh token?
 
 //Page for authentified user
-app.get('/' + settingsPage, isAuthenticated, async (req, response, next) => {
+app.get('/', isAuthenticated, async (req, response, next) => {
   let user = req.session.user;
+  let pageContent = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
+  console.log('page: '+req.session.page);
+  if(req.session.page) pageContent+= '<script>showPage("' + req.session.page + '");</script>\n';
   //Load the authentification URL parameter
-  fs.readFile(root + settingsPage + '.html', 'utf8', function (fileReadError, data) {
+  fs.readFile(root + index, 'utf8', function (fileReadError, data) {
     if (fileReadError) {
       return next(errorContext(fileReadError));
     }
-    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, 'Welcome ' + user.username + '#' + user.discriminator +
-      ' <a href="/logout">log out</a>');
+    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, pageContent);
     return response.send(result);
   });
 });
 
 //Page for unauthentificated user
-app.get('/' + settingsPage, async (req, response, next) => {
+app.get('/', async (req, response, next) => {
+  req.session.state = generateRandomString();
   //Load the authentification URL parameter
-  fs.readFile(root + settingsPage + '.html', 'utf8', function (fileReadError, data) {
+  fs.readFile(root + index, 'utf8', function (fileReadError, data) {
     if (fileReadError) {
-      return next(errorContext(fileReadError));
+      return next(errorContext(fileReadError, 'Unable to find index file'));
     }
-    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock);
-    return response.send(result);
+    req.session.save(function (err) {
+      if (err) {
+        return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+      }
+      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state)));
+      return response.send(result);
+    });
+  });
+});
+
+//Formatted error display
+app.use(async (error, req, response, next) => {
+  req.session.state = generateRandomString();
+  //Load the authentification URL parameter
+  fs.readFile(root + index, 'utf8', function (fileReadError, data) {
+    if (fileReadError) {
+      return next(errorContext(fileReadError, 'Unable to find index file'));
+    }
+    errorLog(error);
+    req.session.save(function (err) {
+      if (err) {
+        return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+      }
+      result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>');
+      return response.send(result);
+    });
   });
 });
 
