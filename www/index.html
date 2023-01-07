@@ -56,8 +56,9 @@
   </script>
   <!-- !PAGE CONTENT! -->
   <div class="w3-content" style="max-width:1500px">
+    <div class="account">{AUTHENTIFICATION_BLOCK}</div>
     <!-- Header -->
-    <header class="w3-panel w3-center w3-opacity" style="padding:128px 16px; pointer-events: none">
+    <header class="w3-panel w3-center w3-opacity" style="padding:8px 16px; pointer-events: none">
       <h1 class="w3-xlarge">ENLIGHTENED BOT</h1>
       <h1>MAGES.</h1>
 
@@ -76,7 +77,7 @@
 
     <div class="tabcontent" id="home">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter">
+        <div class="w3-quarter optionnal">
           <img class="mages-image" src="./MAGES.-body.png" style="width:100%">
         </div>
 
@@ -89,11 +90,12 @@
         </div>
       </div>
     </div>
-    <!-- End Page Content -->
+    <!-- End 
+       Content -->
 
     <div class="tabcontent" id="settings" style="display:none">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter">
+        <div class="w3-quarter  optionnal">
           <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%"></div>
         </div>
 
@@ -106,7 +108,7 @@
 
     <div class="tabcontent" id="documentation" style="display:none">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter">
+        <div class="w3-quarter optionnal">
           <img class="mages-image" src="./MAGES.-body.png" style="width:100%">
         </div>
         <div class="w3-half">
@@ -165,9 +167,6 @@
       <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank"
           class="w3-hover-text-green">w3.css</a></p>
     </footer>
-
-    <div class="account">{AUTHENTIFICATION_BLOCK}</div>
-
+    {LOAD_PAGE}
 </body>
-
 </html>

@@ -211,14 +211,14 @@ async function getDiscordUser(oauthData) {
 app.get('/', isAuthenticated, async (req, response, next) => {
   let user = req.session.user;
   let pageContent = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
-  console.log('page: '+req.session.page);
-  if(req.session.page) pageContent+= '<script>showPage("' + req.session.page + '");</script>\n';
+  let loadScript = 
   //Load the authentification URL parameter
   fs.readFile(root + index, 'utf8', function (fileReadError, data) {
     if (fileReadError) {
       return next(errorContext(fileReadError));
     }
-    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, pageContent);
+    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, pageContent).replace(/{LOAD_PAGE}/g, 
+      req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '');
     return response.send(result);
   });
 });
@@ -235,7 +235,8 @@ app.get('/', async (req, response, next) => {
       if (err) {
         return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
       }
-      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state)));
+      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state))).replace(/{LOAD_PAGE}/g, 
+      req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '');;
       return response.send(result);
     });
   });
