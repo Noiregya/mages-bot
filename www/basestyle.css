@@ -231,7 +231,10 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
 .w3-border-dark-grey,.w3-hover-border-dark-grey:hover,.w3-border-dark-gray,.w3-hover-border-dark-gray:hover{border-color:#616161!important}
 .w3-border-pale-red,.w3-hover-border-pale-red:hover{border-color:#ffe7e7!important}.w3-border-pale-green,.w3-hover-border-pale-green:hover{border-color:#e7ffe7!important}
 .w3-border-pale-yellow,.w3-hover-border-pale-yellow:hover{border-color:#ffffcc!important}.w3-border-pale-blue,.w3-hover-border-pale-blue:hover{border-color:#e7ffff!important}
+
 /*Custom CSS*/
+@media (max-width:600px){.optionnal {display: none;}}
+
 .mages-image{
     max-width: 600px;
     left:-50%;
@@ -239,4 +242,42 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
 
 .transparent-bg{
     opacity:0.5;
+}
+
+/* Style the buttons that are used to open the tab content */
+.w3-bar button{
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+  }
+
+.w3-panel .w3-center .w3-opacity{
+    pointer-events: none;
+}
+
+@media (min-width:861px){.account{
+    position: absolute;
+    top: 40px; right: 40px;
+}}
+
+@media (max-width:860px){.account{
+    position: relative;
+    text-align:center;
+}}
+
+.mages-bg{
+    background-image: url('./magesReference.png');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position-x: -20%;
+    background-size: 60%;
+    
+}
+
+.content-block{
+    background-color: #dddddda0;
 }

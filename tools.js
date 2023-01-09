@@ -359,29 +359,6 @@ function randomReiReact(){
     return reiReact[Math.floor(Math.random()*reiReact.length)];
 }
 
-async function getGuildSummary(guild){ // jshint ignore:line
-    let guildSummary = await dao.getGuildInfo(guild);// jshint ignore:line
-    if(!guildSummary || !guildSummary.rows || guildSummary.rows.length < 1){
-        return 'Impossible to find guild '+guild.name;
-    }
-
-    let guildInfo = guildSummary.rows[0];
-    let message = 'Summary for guild '+guild.name+'\n';
-    let starboardChannel = guild.channels.resolve(guildInfo.starboard_channel_id)||{name: 'Channel not found'};
-    let welcomeChannel = guild.channels.resolve(guildInfo.welcome_channel_id)||{name: 'Channel not found'};
-    let infoChannel = guild.channels.resolve(guildInfo.information_channel_id)||{name: 'Channel not found'};
-    message += 'Name: '+guildInfo.name+'\n';
-    message += 'information_channel_id: '+infoChannel.name+'\n';
-    message += 'Welcome channel: '+welcomeChannel.name+'\n';
-    message += 'Nations are assigned randomly: '+guildInfo.random_assign_nation+'\n';
-    message += 'Shares message id: '+guildInfo.shares_message_id+'\n';
-    message += 'Delay before considered inactive: '+guildInfo.active_delay+' days\n';
-    message += 'Starboard channel: '+starboardChannel.name+'\n';
-    message += 'Number of stars required: '+guildInfo.nb_star+'\n';
-
-    return message;
-}
-
 function getRandomNation(guild){
     return dao.getNations(guild).then(function(nations){
         let realNations = [];
@@ -1050,7 +1027,6 @@ module.exports = {
     findByName: findByName,
     genericEventNotifier: genericEventNotifier,
     getActiveMembers: getActiveMembers,
-    getGuildSummary: getGuildSummary,
     getInactiveMembers: getInactiveMembers,
     getMemberNation: getMemberNation,
     getRandomNation: getRandomNation,

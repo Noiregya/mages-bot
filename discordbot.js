@@ -71,6 +71,7 @@ client.on('ready', function(){
 
     console.log('Logged in as '+client.user.tag+'!');
     client.user.setActivity(".P HELP",{ type: 'LISTENING' });
+    //TODO: Update guild list in DB
     client.guilds.fetch().then(function(guilds){
         if(guilds.available)
             guilds = new Array(guilds);
@@ -463,18 +464,6 @@ client.on('message', function(msg){
                                     }
                                 }else{
                                     msg.reply('Invalid command, see .p help assign for more info').catch(function(err){console.error('ASSIGN '+err);});
-                                }
-                            }else if(parsedMessage[1].toUpperCase()=='AUTOASSIGN' && parsedMessage.length >=3){
-                                if(parsedMessage[2].toUpperCase()=='ENABLE'){
-                                    dao.enableNationJoin(msg.guild);
-                                    msg.reply('One of the nation will be assigned to any newcommer').catch(function(err){
-                                        console.error('Enable autoassign: '+err);
-                                    });
-                                }else if(parsedMessage[2].toUpperCase()=='DISABLE'){
-                                    dao.disableNationJoin(msg.guild);
-                                    msg.reply('No nation will be assigned to any newcommer').catch(function(err){
-                                        console.error('Disable autoassign: '+err);
-                                    });
                                 }
                             }else if (parsedMessage[1].toUpperCase()=='SETSTARAMOUNT') {
                                 let amount = parseInt(parsedMessage[2],10) || 0;
