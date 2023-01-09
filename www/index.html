@@ -21,7 +21,7 @@
   }
 </style>
 
-<body>
+<body class="mages-bg">
   <script>
     function showPage(pageName) {
       hideAll();
@@ -78,10 +78,10 @@
     <div class="tabcontent" id="home">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
         <div class="w3-quarter optionnal">
-          <img class="mages-image" src="./MAGES.-body.png" style="width:100%">
+          <img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%;">
         </div>
 
-        <div class="w3-half">
+        <div class="w3-half content-block">
           <h3>Greetings, I'm MAGES. the mad magician.</h3>
           I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control
           Discord.<br />
@@ -95,12 +95,12 @@
 
     <div class="tabcontent" id="settings" style="display:none">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter  optionnal">
-          <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%"></div>
+        <div class="w3-quarter optionnal">
+          <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%"></div>
         </div>
 
-        <div class="w3-half">
-          List of servers here
+        <div class="w3-half content-block">
+          {ADMIN_FORMS}
         </div>
       </div>
     </div>
@@ -109,9 +109,9 @@
     <div class="tabcontent" id="documentation" style="display:none">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
         <div class="w3-quarter optionnal">
-          <img class="mages-image" src="./MAGES.-body.png" style="width:100%">
+          <img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%">
         </div>
-        <div class="w3-half">
+        <div class="w3-half content-block">
           <h3>Command list:</h3>
           <h4>Admin commands</h4>
           <table class="w3-table">
@@ -150,11 +150,11 @@
 
     <div class="tabcontent" id="error" style="display:none">
       <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter">
-          <div><img class="mages-image transparent-bg" src="./MAGES.-body.png" style="width:100%"></div>
+        <div class="w3-quarter optionnal">
+          <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%"></div>
         </div>
 
-        <div class="w3-half">
+        <div class="w3-half content-block">
           {ERROR_BLOCK}
           <a href="/">Take me back home</a>
         </div>

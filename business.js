@@ -108,17 +108,6 @@ function addRolesToNewMember(member){
         },function(err){
             console.error(err);
         });
-        dao.getNationJoin(member.guild).then(function(enabled){
-            if(enabled){
-                tools.getRandomNation(member.guild).then(function(res){
-                    member.roles.add(member.guild.roles.cache.get(res.role_id)).catch(function(err){
-                        console.error('getNationJoin '+err);//ADD THIS ON THE REAL USE
-                    });
-                }, function(err){
-                    console.error('getNationJoin '+err);//ADD THIS ON THE REAL USE
-                });
-            }
-        }, function(err){console.error('guildMemberAdd '+err);});
     }else{
         console.error('Member is null');
     }

@@ -74,23 +74,41 @@ function errorLog(err) {
   let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
   for (i = 0; i < err.business.length; i++) {
     string += err.name + ' : ' + err.business[i];
-    if(err.secret[i]) string += ' ' + err.secret[i];
+    if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
     string += '\n'
   }
   console.error(string);
+  console.error(err);
+}
+
+async function generateAdminForms(userGuilds) {
+  let form = '<form>\n';
+  let botGuilds = await dao.getGuilds();
+  userGuilds.forEach(userGuild => {
+    if (botGuilds.rows.some(botGuild => botGuild.id === userGuild.id)) {
+      form += '<div>Guild ' + userGuild.name + ' is administred by MAGES.</div>\n';//The user is admin and 
+    } else {
+      form += '<div>MAGES. isnt in ' + userGuild.name + ' yet</div>\n';//The user is admin and 
+    }
+  });
+  return form += '</form>';
 }
 
 //Connect to discord by getting the token then the user object
-async function connect(code, state) {
+async function connect(code) {
   let user;
   if (code) {
     let token = await getDiscordToken(code).catch(err => {
       throw errorContext(err, 'Unable to get discord token with code ' + code);
     });
     if (token) {
-      return await getDiscordUser(token).catch(err => {
+      let user = await getDiscordUser(token).catch(err => {
         throw errorContext(err, 'Unable to get discord user with token', token); //Token is only going to be visible in the logs
       });
+      user.guilds = await getDiscordGuilds(token).catch(err => {
+        throw errorContext(err, 'Unable to get discord guilds with token', token);
+      });
+      return user;
     } else {
       throw errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'There was an issue with the token', token);
     }
@@ -107,7 +125,7 @@ app.get('/login', function (req, res, next) {
   if (req.session.state !== req.query.state)
     return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
   //Attempts to connect to discord API
-  connect(req.query.code,).then(function (user) {
+  connect(req.query.code).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
@@ -181,7 +199,7 @@ async function getDiscordToken(code) {
       code,
       grant_type: 'authorization_code',
       redirect_uri,
-      scope: 'identify'
+      scope: 'identify guilds guilds.members.read'
     }).toString(),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -205,20 +223,44 @@ async function getDiscordUser(oauthData) {
   return user;
 }
 
+//Get the guilds where the member is admin
+async function getDiscordGuilds(oauthData) {
+  //Get the guild data from the token
+  guildResult = await request('https://discord.com/api/users/@me/guilds', {
+    headers: {
+      authorization: `${oauthData.token_type} ${oauthData.access_token}`, //oauthData.refresh_token, oauthData.expires_in
+    },
+  });
+  //Fill the guild object
+  let guilds = await guildResult.body.json();
+  if (guilds.error) throw ({ name: guilds.error, message: guilds.error_description });
+  //Filter all the guilds where the user is not admin
+  guilds = guilds.filter(guild => {
+    return guild.permissions >> 3 & 0x1;
+  });
+
+  return guilds;
+}
+
 //TODO: Refresh token?
 
 //Page for authentified user
 app.get('/', isAuthenticated, async (req, response, next) => {
   let user = req.session.user;
-  let pageContent = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
-  let loadScript = 
+  let accountInfo = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
+  let generateAdminFormsError;
+  let adminForms = await generateAdminForms(user.guilds).catch(err => {
+    generateAdminFormsError = errorContext(err, 'Could not generate administration forms');
+  });
+  if (generateAdminFormsError) return next(generateAdminFormsError);
   //Load the authentification URL parameter
   fs.readFile(root + index, 'utf8', function (fileReadError, data) {
     if (fileReadError) {
-      return next(errorContext(fileReadError));
+      return next(errorContext(fileReadError, 'Could not read file ' + index));
     }
-    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, pageContent).replace(/{LOAD_PAGE}/g, 
-      req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '');
+    var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, accountInfo)
+      .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
+      .replace(/{ADMIN_FORMS}/g, adminForms);
     return response.send(result);
   });
 });
@@ -235,15 +277,16 @@ app.get('/', async (req, response, next) => {
       if (err) {
         return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
       }
-      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state))).replace(/{LOAD_PAGE}/g, 
-      req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '');;
+      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state)))
+        .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
+        .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot');
       return response.send(result);
     });
   });
 });
 
 //Formatted error display
-app.use(async (error, req, response, next) => {
+app.use(async (error, req, res, next) => {
   req.session.state = generateRandomString();
   //Load the authentification URL parameter
   fs.readFile(root + index, 'utf8', function (fileReadError, data) {
@@ -255,8 +298,8 @@ app.use(async (error, req, response, next) => {
       if (err) {
         return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
       }
-      result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>');
-      return response.send(result);
+      result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '');
+      return res.status(500).send(result);
     });
   });
 });

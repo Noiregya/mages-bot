@@ -259,12 +259,25 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
     pointer-events: none;
 }
 
-@media (min-width:801px){.account{
+@media (min-width:861px){.account{
     position: absolute;
     top: 40px; right: 40px;
 }}
 
-@media (max-width:800px){.account{
+@media (max-width:860px){.account{
     position: relative;
     text-align:center;
 }}
+
+.mages-bg{
+    background-image: url('./magesReference.png');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position-x: -20%;
+    background-size: 60%;
+    
+}
+
+.content-block{
+    background-color: #dddddda0;
+}
