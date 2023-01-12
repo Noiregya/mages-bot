@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const fs = require('fs');
 
 const ssl_directory = process.env.SSL_DIRECTORY;
-//TODO: Catch DAO errors in calls
+//TODO: Improve error management
 
 const config = {
     connectionString: process.env.DATABASE_STRING,
@@ -24,10 +24,10 @@ pool
     })
     .catch(err => console.error('error connecting', err.stack));
 
-function getNations(guild) {
+function getNations(guild_id) {
     var query = {
         text: 'SELECT * from nations WHERE nations.guild_id = $1 ORDER BY ranking',
-        values: [guild.id]
+        values: [guild_id]
     };
     return pool.query(query).catch(function (err) { console.error('getNations() ' + err); });
 }
@@ -45,6 +45,20 @@ function getGuilds() {
         text: 'SELECT * from guilds'
     };
     return pool.query(query).catch(function (err) { console.error('getGuilds() ' + err); });
+}
+
+function getGuildProperties(guildIds){
+    console.log(guildIds);
+    var query = {
+        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
+            +'channels.welcome, channels.information, channels.starboard '
+            +'FROM guilds JOIN channels ON guilds.id = channels.guild '
+            +'WHERE guilds.id = ANY($1)',
+        values: [guildIds]
+    };
+    return pool.query(query).catch(function (err) { 
+        console.error(err);
+        console.error('getGuildProperties() ' + err); });
 }
 
 function setField(table, id_column, id, value_column, value) {
@@ -530,7 +544,6 @@ module.exports = {
     getActiveDelay: getActiveDelay,
     getActiveRoles: getActiveRoles,
     getBans: getBans,
-    getEventNations: getNations,
     getFriendliness: getFriendliness,
     getInfoChannel: getInfoChannel,
     getLocalPowerLevels: getLocalPowerLevels,
@@ -546,6 +559,7 @@ module.exports = {
     isFrozen: isFrozen,
     registerGuild: registerGuild,
     getGuilds: getGuilds,
+    getGuildProperties: getGuildProperties,
     removeEventNation: removeEventNation,
     removeNation: removeNation,
     removePunishment: removePunishment,

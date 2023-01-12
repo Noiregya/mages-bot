@@ -360,7 +360,7 @@ function randomReiReact(){
 }
 
 function getRandomNation(guild){
-    return dao.getNations(guild).then(function(nations){
+    return dao.getNations(guild.id).then(function(nations){
         let realNations = [];
         nations.rows.forEach(function(nation){
             if(nation.isunique){
@@ -492,7 +492,7 @@ function decorate(embed, description, authorName, authorIcon, timestamp, color){
 async function getMemberNation(member){ // jshint ignore:line
     if (member !== null){
         //get nation
-        return await dao.getNations(member.guild).then(async function(nations){ // jshint ignore:line
+        return await dao.getNations(member.guild.id).then(async function(nations){ // jshint ignore:line
             var result;
             await nations.rows.forEach(function(nation){ // jshint ignore:line
                 let correspondingNation = member.roles.cache.filter(role => role.id == nation.role_id && nation.isunique);
@@ -511,7 +511,7 @@ function updateInfoMessage(channel, member, dao){
     deleteOneInAChannel(channel, member);
     let guild = channel.guild;
     channel.send('\`\`\`React to the below messages to join a nation and secret rooms!\`\`\`').catch(function(err){console.error('updateInfoMessage() '+err);});
-    dao.getNations(guild).then(function(nations){
+    dao.getNations(guild.id).then(function(nations){
         nations.rows.forEach(function(currentNation){
             let embedNation = {
                 embed: {
@@ -692,7 +692,7 @@ function leaveNation(role, member, nations){
 
 function getShares(guild){
     return guild.members.fetch().then(function(memberCollection){
-        return dao.getNations(guild).then(function(nationsRequest){
+        return dao.getNations(guild.id).then(function(nationsRequest){
             let countArray = [];
             nationsRequest.rows.forEach(function(nationRequest){
                 if(nationRequest.isunique){

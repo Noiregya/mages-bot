@@ -15,6 +15,17 @@ const index = 'index.html';
 
 const app = express();
 
+let client;
+
+function init(discordClient){
+  client = discordClient;
+
+  //Start server
+  app.listen(port, () => {
+    console.log(`The website is running on port ${port}`);
+  });
+}
+
 app.use(session({
   secret: cookieSecret,
   resave: false,
@@ -53,6 +64,7 @@ function isAuthenticated(req, res, next) {
 //Unified method of adding business information to an error object before throwing it
 function errorContext(err, message, secret) {
   if (!err.business) err.business = []; //Create array if it doesn't exist
+  if(!message) message = 'Failed to provide message element to the errorContext function';//Error if called improperly
   let rank = err.business.push(message) - 1; //Adds the message to the array and returns the index of that element
   //Information useful for debugging but that we don't want to show the end user
   if (secret) {
@@ -64,34 +76,118 @@ function errorContext(err, message, secret) {
 
 function errorDisplay(err) {
   let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n<table>';
-  for (i = 0; i < err.business.length; i++) {
-    string += '<tr><td>' + err.business[i] + '</td></tr>\n';
+  console.log(err);
+  if(err.business){
+    for (i = 0; i < err.business.length; i++) {
+      string += '<tr><td>' + err.business[i] + '</td></tr>\n';
+    }
   }
   return string + '</table>';
 }
 
 function errorLog(err) {
   let string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
-  for (i = 0; i < err.business.length; i++) {
-    string += err.name + ' : ' + err.business[i];
-    if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
-    string += '\n'
+  if(err.business){
+    for (i = 0; i < err.business.length; i++) {
+      string += err.name + ' : ' + err.business[i];
+      if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
+      string += '\n'
+    }
   }
   console.error(string);
   console.error(err);
 }
 
-async function generateAdminForms(userGuilds) {
-  let form = '<form>\n';
-  let botGuilds = await dao.getGuilds();
-  userGuilds.forEach(userGuild => {
-    if (botGuilds.rows.some(botGuild => botGuild.id === userGuild.id)) {
-      form += '<div>Guild ' + userGuild.name + ' is administred by MAGES.</div>\n';//The user is admin and 
-    } else {
-      form += '<div>MAGES. isnt in ' + userGuild.name + ' yet</div>\n';//The user is admin and 
+/**
+   * @param {Array<String>} guilds 
+   * @returns Array containg guild, channels[], error tuple
+   */
+async function getGuildChannels(guilds){
+  let guildRes = [];
+  for(i = 0; i < guilds.length; i++){
+    const guild = client.guilds.resolve(guilds[i].id);
+    if(!guild){
+      guildRes.push({guild: {id: guilds[i].id},error: errorContext({ name: 'guildNotFound', 
+      message: 'Cannot fetch guild '+guilds[i].id }, 'at getGuildChannels')});
+      continue;//Skip to next guild
+    };
+
+    const channels = await guild.channels.fetch();
+    if(!channels){
+      guildRes.push({guild: {id: guilds[i].id}, error: errorContext({ name: 'channelNotFound', 
+         message: 'Cannot fetch channels for guild '+guild.name }, 'at getGuildChannels')});
+      continue;
     }
+
+    guildRes.push({guild: guild, channels: channels});
+  }
+  return guildRes;
+};
+
+async function generateAdminForms(userGuilds) {
+  let res = '';
+  let botGuilds = await dao.getGuilds();
+
+  //Partition guilds known and unknown to the bot into two lists
+  function partition(array) {
+    return array.reduce(([pass, fail], elem) => {
+      return botGuilds.rows.some(botGuild => botGuild.id === elem.id) 
+        ? [[...pass, elem], fail] : [pass, [...fail, elem]];
+    }, [[], []]);
+  };
+  const [commonGuilds, otherGuilds] = partition(userGuilds);
+  //list of guilds and channel from the bot client view
+  let guildChannels = await getGuildChannels(commonGuilds);
+  //Get the properties for all the guilds
+  let propertiesResult = await dao.getGuildProperties(commonGuilds.map(guild => guild.id));
+  let properties = propertiesResult.rows;
+  //Add the nations to the properties
+  for(i = 0; i < properties.length; i++){
+    let nationsResult = await dao.getNations(properties[i].id);
+    properties[i].nations = nationsResult.rows ? nationsResult.rows : [];
+  }
+
+  //Cross discord client data and database properties
+  for(i = 0; i < guildChannels.length; i++){
+    for(j = 0; j < properties.length; j++){
+      if(guildChannels[i].guild.id === properties[j].id){
+        guildChannels[i].properties = properties[j];
+        continue;
+      }
+    }
+  }
+
+  //Display client discord channels forms for managed guilds
+  guildChannels.forEach(guildWithChannel => {
+    res += '<form><div id=' + guildWithChannel.guild.id + '>';//Open guild div
+    console.log(guildWithChannel);
+    if (guildWithChannel.error) {
+      console.log(guildWithChannel.error);
+      res += errorDisplay(errorContext(guildWithChannel.error, 'at generateAdminForms'),'</div></form>');
+    }else{
+      //Welcome channel select
+      res += '<div>Welcome channel<select class="welcome-channel">'
+            + '<option value="">--Please choose an option--</option>';
+      guildWithChannel.channels.forEach(function(channel){
+        res += `<option value="${channel.id}">${channel.name}</option>`;
+      });
+      res += '</select></div>';
+      res += `<div>Delay to mark user as inactive<input class="w3-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>`;
+      res += `<div>Guild ${guildWithChannel.guild.name || guildWithChannel.guild.id} is administred by MAGES.</div>\n`;//That guild is known by MAGES.
+      res += '</div></form>';//End Guild
+    }
+    /**
+     * guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
+            +'channels.welcome, channels.information, channels.starboard '
+     */
   });
-  return form += '</form>';
+  res;
+
+  //Display unmanaged guilds
+  otherGuilds.forEach(otherGuild => {
+    res += '<div>MAGES. isnt in ' + otherGuild.name + ' yet</div>\n';//Guild unknown by MAGES.
+  });
+  return res;
 }
 
 //Connect to discord by getting the token then the user object
@@ -310,6 +406,6 @@ app.use(function (err, req, res, next) {
   res.status(500).send(errorDisplay(err));
 });
 
-app.listen(port, () => {
-  console.log(`The website is running on port ${port}`)
-})
+module.exports = {
+  init: init
+}

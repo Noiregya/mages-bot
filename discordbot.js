@@ -57,11 +57,14 @@ patchEmitter(client);
 
 ///// On even ready /////
 client.on('ready', function(){
+    //Start website
+    webpage.init(client);
     //Initialize client
     client.application.fetch().then(function(application){
         ownerUser = application.owner;
         console.log('Welcome to MAGES.'+'\nOwner: '+ownerUser.tag);
         ownerUser.createDM().then(DMchannel =>{
+            //TODO: Send Crash report by message
             DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err =>{
                 console.error(err);
             });
@@ -257,7 +260,7 @@ client.on('messageReactionAdd', function(messageReaction, user){
         dao.getInfoChannel(guild).then(function(infoChannel){
             //Check if it's in the info channel
             if(message.channel.id == infoChannel){
-                dao.getNations(guild).then(function(result){
+                dao.getNations(guild.id).then(function(result){
                     result.rows.forEach(function(row){
                         if(row.message_id == message.id){
                             tools.findByName(guild.roles, row.name).then(function(role){
@@ -330,7 +333,7 @@ client.on('messageReactionRemove', function(messageReaction, user){
     let guild = messageReaction.message.guild;
     if(guild){
         guild.members.fetch(user).then(function(member){
-            dao.getNations(guild).then(function(result){
+            dao.getNations(guild.id).then(function(result){
                 result.rows.forEach(function(row){
                     if(row.message_id == messageReaction.message.id){
                         tools.findByName(guild.roles, row.name).then(function(role){
