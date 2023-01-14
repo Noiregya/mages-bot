@@ -124,6 +124,11 @@ async function getGuildChannels(guilds){
   return guildRes;
 };
 
+function toColorCode(decimal){
+  var s = '000000' + decimal.toString(16);
+  return '#'+ s.substring(s.length-6);
+}
+
 async function generateAdminForms(userGuilds) {
   let res = '';
   let botGuilds = await dao.getGuilds();
@@ -159,21 +164,51 @@ async function generateAdminForms(userGuilds) {
 
   //Display client discord channels forms for managed guilds
   guildChannels.forEach(guildWithChannel => {
-    res += '<form><div id=' + guildWithChannel.guild.id + '>';//Open guild div
+    res += `<form><div id="${guildWithChannel.guild.id}">`;//Open guild div
     console.log(guildWithChannel);
     if (guildWithChannel.error) {
       console.log(guildWithChannel.error);
       res += errorDisplay(errorContext(guildWithChannel.error, 'at generateAdminForms'),'</div></form>');
     }else{
+      res +=`<h2>${guildWithChannel.guild.name}</h2><image src="${guildWithChannel.guild.iconURL()}" alt="Guild profile picture">`;
       //Welcome channel select
-      res += '<div>Welcome channel<select class="welcome-channel">'
+      res += 'Welcome channel<select name="welcome-channel">'
             + '<option value="">--Please choose an option--</option>';
       guildWithChannel.channels.forEach(function(channel){
         res += `<option value="${channel.id}">${channel.name}</option>`;
       });
-      res += '</select></div>';
-      res += `<div>Delay to mark user as inactive<input class="w3-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>`;
-      res += `<div>Guild ${guildWithChannel.guild.name || guildWithChannel.guild.id} is administred by MAGES.</div>\n`;//That guild is known by MAGES.
+      res += '</select>';
+
+      res += 'Information channel<select name="information-channel">'
+            + '<option value="">--Please choose an option--</option>';
+      guildWithChannel.channels.forEach(function(channel){
+        res += `<option value="${channel.id}">${channel.name}</option>`;
+      });
+      res += '</select>';
+
+      res += 'Starboard channel<select name="starboard-channel">'
+            + '<option value="">--Please choose an option--</option>';
+      guildWithChannel.channels.forEach(function(channel){
+        res += `<option value="${channel.id}">${channel.name}</option>`;
+      });
+      res += '</select>';
+      res += `Number of star emoji to add message to the starboard<input class="w3-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}>`;
+      res += `Delay to mark user as inactive<input name="inactive" class="w3-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}>`;
+      res += `<input class="w3-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}>`;
+      //Existing nations
+      guildWithChannel.properties.nations.forEach(function(nation){
+        res += `Name<input class="w3-input" name="name" value="${nation.name}">`;
+        res += `Description<input class="w3-input" name="description" value="${nation.description}">`;
+        res += `Thumbnail<input class="w3-input" name="thumbnail" value="${nation.thumbnail}">`;//TODO: Display current thumbnail
+        res += `Color<input type="color" name="color" value="${toColorCode(nation.color)}">`;
+        //res += `<div>Name<input class="w3-input" name="message"></div>`; TODO: Select message from the UI
+        //TODO: Select role from list
+        res += `Is a nation?<input class="w3-input" type="checkbox" name="isunique" ${nation.isunique ? 'checked' : ''}>`;//TODO add help context? CSS?
+        res += `<input type="hidden" class="w3-input" name="ranking" value="${nation.anking}">`;
+      });
+      //TODO: MOVE NATIONS AROUND
+      //TODO: ADD NEW NATION
+      res +='<input type="submit" />';
       res += '</div></form>';//End Guild
     }
     /**
@@ -181,8 +216,6 @@ async function generateAdminForms(userGuilds) {
             +'channels.welcome, channels.information, channels.starboard '
      */
   });
-  res;
-
   //Display unmanaged guilds
   otherGuilds.forEach(otherGuild => {
     res += '<div>MAGES. isnt in ' + otherGuild.name + ' yet</div>\n';//Guild unknown by MAGES.
