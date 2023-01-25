@@ -167,7 +167,7 @@ async function toggleWhitelist(member){
     let message;
     if(member){
         let whitelistedRows = await dao.getWhiteListedAdmins(member.guild);
-        let whitelisted = whitelistedRows && whitelistedRows.rows.find(row => row.user_id == member.user.id);
+        let whitelisted = whitelistedRows && whitelistedRows.rows.find(row => row.user == member.user.id);
 
         if(whitelisted){
             res = await dao.blacklistAdmin(member.user, member.guild).catch(function(err){

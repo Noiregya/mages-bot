@@ -495,7 +495,7 @@ async function getMemberNation(member){ // jshint ignore:line
         return await dao.getNations(member.guild.id).then(async function(nations){ // jshint ignore:line
             var result;
             await nations.rows.forEach(function(nation){ // jshint ignore:line
-                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role_id && nation.isunique);
+                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role && nation.isunique);
                 if(correspondingNation.array().length !== 0){
                     result = correspondingNation.array()[0];
                 }
@@ -527,14 +527,13 @@ function updateInfoMessage(channel, member, dao){
                 }, function(err){
                     console.error("Could not react "+err);
                 });
-                let role = guild.roles.resolve(currentNation.role_id);
+                let role = guild.roles.resolve(currentNation.role);
                 dao.updateMessageId(role, message.id);
             }, function(err){
                 console.error("Couldn't send message "+err);
             });
         });
         //Shares
-        let fieldsArray = [];
 
         makeShareMessage(guild).then(function(shareMessage){
             channel.send(shareMessage).then(function(message){
@@ -699,7 +698,7 @@ function getShares(guild){
                     let memberCount = 0;
                     memberCollection.array().forEach(function(member){
                         member.roles.cache.forEach(function(role){
-                            if(role.id == nationRequest.role_id){
+                            if(role.id == nationRequest.role){
                                 memberCount++;
                             }
                         });

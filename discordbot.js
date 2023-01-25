@@ -1,19 +1,21 @@
 const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 
 //Discord intents
-const client = new Client({ intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildBans,
-    GatewayIntentBits.GuildEmojisAndStickers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.DirectMessageReactions,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.AutoModerationConfiguration,
-    GatewayIntentBits.AutoModerationExecution
-] });
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildBans,
+        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.AutoModerationConfiguration,
+        GatewayIntentBits.AutoModerationExecution
+    ]
+});
 
 const Token = process.env.TOKEN;
 const Owner = process.env.OWNER;
@@ -56,30 +58,30 @@ patchEmitter(client);
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS //////////////////////////////
 
 ///// On even ready /////
-client.on('ready', function(){
+client.on('ready', function () {
     //Start website
     webpage.init(client);
     //Initialize client
-    client.application.fetch().then(function(application){
+    client.application.fetch().then(function (application) {
         ownerUser = application.owner;
-        console.log('Welcome to MAGES.'+'\nOwner: '+ownerUser.tag);
-        ownerUser.createDM().then(DMchannel =>{
+        console.log('Welcome to MAGES.' + '\nOwner: ' + ownerUser.tag);
+        ownerUser.createDM().then(DMchannel => {
             //TODO: Send Crash report by message
-            DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err =>{
+            DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err => {
                 console.error(err);
             });
-        }), err =>{console.error(err)};
-    }).catch(err => {console.error(err)});
+        }), err => { console.error(err) };
+    }).catch(err => { console.error(err) });
 
 
-    console.log('Logged in as '+client.user.tag+'!');
-    client.user.setActivity(".P HELP",{ type: 'LISTENING' });
+    console.log('Logged in as ' + client.user.tag + '!');
+    client.user.setActivity(".P HELP", { type: 'LISTENING' });
     //TODO: Update guild list in DB
-    client.guilds.fetch().then(function(guilds){
-        if(guilds.available)
+    client.guilds.fetch().then(function (guilds) {
+        if (guilds.available)
             guilds = new Array(guilds);
-        guilds.forEach(function (guild){
-            console.log('Available guild '+guild.name)
+        guilds.forEach(function (guild) {
+            console.log('Available guild ' + guild.name)
         })
     });
     //TODO cache messages to fix starboard?
@@ -116,8 +118,8 @@ client.on('ready', function(){
 
 client.on(Events.InteractionCreate, async interaction => {
     let res;
-    if(interaction.isChatInputCommand()){
-        switch (String(interaction.commandName)){
+    if (interaction.isChatInputCommand()) {
+        switch (String(interaction.commandName)) {
             case 'mute':
                 await interaction.reply({ content: 'This should be the list of muted users', ephemeral: true });
                 break;
@@ -127,13 +129,13 @@ client.on(Events.InteractionCreate, async interaction => {
                 break;
             case 'parrot':
                 res = await business.parrot(interaction);
-                if(interaction.deferred)
+                if (interaction.deferred)
                     interaction.editReply(res);
                 else
                     interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'register':
-                if(interaction.inGuild())
+                if (interaction.inGuild())
                     res = await interactions.register(interaction.guild);
                 else //TODO: Check if the command was issued by the bot owner
                     res = await interactions.register();
@@ -141,15 +143,15 @@ client.on(Events.InteractionCreate, async interaction => {
                 break;
             case 'preban':
                 res = await business.preban(interaction);
-                await interaction.reply({ content: res, ephemeral: true});
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'unban':
                 res = await business.unban(interaction);
-                await interaction.reply({ content: res, ephemeral: true});
+                await interaction.reply({ content: res, ephemeral: true });
                 break;
         }
-    }else if(interaction.isUserContextMenuCommand()){
-        switch (String(interaction.commandName)){
+    } else if (interaction.isUserContextMenuCommand()) {
+        switch (String(interaction.commandName)) {
             case 'toggle mute':
                 res = await business.muteUnmute(client, interaction);
                 interaction.reply({ content: res, ephemeral: true });
@@ -158,73 +160,73 @@ client.on(Events.InteractionCreate, async interaction => {
                 res = await interactions.register();
                 await interaction.reply({ content: res, ephemeral: true });
                 break;
-        }        
-    }else if(interaction.isMessageContextMenuCommand()){
+        }
+    } else if (interaction.isMessageContextMenuCommand()) {
         //Message context menu commands
     }
 
 });
 //TODO: Variablilize events
-client.on('warn',function(warn){
+client.on('warn', function (warn) {
     tools.genericEventNotifier(ownerUser, 'warn', warn);
 });
-client.on('error',function(error){
+client.on('error', function (error) {
     tools.genericEventNotifier(ownerUser, 'error', error);
 });
-client.on('guildCreate',function(guild){
+client.on('guildCreate', function (guild) {
     tools.genericEventNotifier(ownerUser, 'guildCreate', guild);
     dao.registerGuild(guild);
 });
-client.on('guildDelete',function(guild){
+client.on('guildDelete', function (guild) {
     tools.genericEventNotifier(ownerUser, 'guildDelete', guild);
 });
 
-client.on('guildMemberUpdate',function(oldMember, newMember){
+client.on('guildMemberUpdate', function (oldMember, newMember) {
     //Calculate differences
     let roleRemoved = oldMember._roles.filter(x => !newMember._roles.includes(x));
     let roleAdded = newMember._roles.filter(x => !oldMember._roles.includes(x));
     //Roles has been added
-    if(roleAdded.length > 0){
-        roleAdded.every(function(role){
+    if (roleAdded.length > 0) {
+        roleAdded.every(function (role) {
             //Check if one of the added role is a mod role, if they can manage messages
-            if(!oldMember.permissions.has(PermissionsBitField.Flags.ManageMessages) && 
-               newMember.permissions.has(PermissionsBitField.Flags.ManageMessages)){
-                newMember.user.createDM().then(function(DM){
-                    DM.send('You received a role that makes you eligible to notifications for '+newMember.guild.name+'. To receive notifications, '+
-                            'type /whitelist').catch(function(err){console.error(err);});
-                },function(err){console.error(err);});
+            if (!oldMember.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
+                newMember.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+                newMember.user.createDM().then(function (DM) {
+                    DM.send('You received a role that makes you eligible to notifications for ' + newMember.guild.name + '. To receive notifications, ' +
+                        'type /whitelist').catch(function (err) { console.error(err); });
+                }, function (err) { console.error(err); });
             }
-        }); 
+        });
     }
 });
 
-client.on('guildBanAdd',function(guildBan){
+client.on('guildBanAdd', function (guildBan) {
     //Notify moderators
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild).then(function(res){
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild).then(function (res) {
         console.debug(res);
     });
 });
 
-client.on('guildBanRemove',function(guildBan){
+client.on('guildBanRemove', function (guildBan) {
     //Notify moderators
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanRemove', guildBan.user, guildBan.guild).then(function(res){
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanRemove', guildBan.user, guildBan.guild).then(function (res) {
         console.debug(res);
     });
 });
 
-client.on('guildMemberAdd',function(member){
+client.on('guildMemberAdd', function (member) {
     business.welcomeNewMember(member);
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberAdd', member).then(function(res){
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberAdd', member).then(function (res) {
         console.debug(res);
     });
 });
 
-client.on('guildMemberRemove',function(member){
-    if(member.user.id != client.user.id){
-        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberRemove', member).then(function(res){
+client.on('guildMemberRemove', function (member) {
+    if (member.user.id != client.user.id) {
+        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberRemove', member).then(function (res) {
             console.debug(res);
         });
-    }else{
+    } else {
         console.error('I cannot notify my own leave');
     }
 });
@@ -365,11 +367,11 @@ client.on('messageUpdate', function(oldMessage, newMessage){
 //TODO: Auto administration
 //TODO: New permission management for guild admins
 //TODO: Web interface setup
-    //TODO: Starboard
-    //TODO: Permissions
-    //TODO: Welcome channel
-    //TODO: Nations
-    //TODO: Pin channel
+//TODO: Starboard
+//TODO: Permissions
+//TODO: Welcome channel
+//TODO: Nations
+//TODO: Pin channel
 //TODO: SECURE COMMAND equivalent: copies pinned messages to a pin channel
 //TODO: Activity monitor: Keep track of active users to prune inactive ones
 //TODO: RELOAD COMMAND EQUIVALENT: Send necessary messages in the welcome channel

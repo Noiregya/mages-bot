@@ -26,7 +26,7 @@ pool
 
 function getNations(guild_id) {
     var query = {
-        text: 'SELECT * from nations WHERE nations.guild_id = $1 ORDER BY ranking',
+        text: 'SELECT * from nations WHERE nations.guild = $1 ORDER BY ranking',
         values: [guild_id]
     };
     return pool.query(query).catch(function (err) { console.error('getNations() ' + err); });
@@ -173,8 +173,8 @@ function updateShareMessage(guild, message_id) {
 }
 
 //TODO: Test
-function updateActiveRole(guild, activeRoles) {
-    clearActiveRole(guild);
+function updateActiveRole(guild_id, activeRoles) {
+    clearActiveRole(guild_id);
     activeRoles.forEach(function (role) {
         setField('active_role', 'guild', guild_id, 'id', role.id);
     });
@@ -185,10 +185,10 @@ function updateActiveDelay(guild, value) {
     setField('guilds', 'id', guild.id, 'active_delay', value);
 }
 
-function clearActiveRole(guild) {
+function clearActiveRole(guild_id) {
     let query = {
         text: "DELETE FROM active_role WHERE guild=$1",
-        values: [guild.id]
+        values: [guild_id]
     };
     pool.query(query).catch(function (err) {
         console.error('clearActiveRole ' + err);
@@ -326,7 +326,7 @@ function getInfoChannel(guild) {
 
 function updateMessageId(role, messageId) {
     let query = {
-        text: 'UPDATE nations SET message_id = $1 WHERE name = $2 AND guild_id = $3',
+        text: 'UPDATE nations SET message = $1 WHERE name = $2 AND guild = $3',
         values: [messageId, role.name, role.guild.id]
     };
     pool.query(query).then(function (result) {
@@ -339,20 +339,20 @@ function createNation(name, description, thumbnail, message_id, role, isUnique) 
     let colorCode;
     colorCode = role.color;
     let query = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8);',
+        text: 'INSERT INTO nations(name, description, color, thumbnail, message, role, guild, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8);',
         values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
     };
     let exists = {
-        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild_id = $2;',
+        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild = $2;',
         values: [name, role.guild.id]
     };
     let remove = {
-        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild_id = $2;',
+        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild = $2;',
         values: [name, role.guild.id]
     };
     let query2 = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
-            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message_id=$5, role_id=$6, isunique=$8 WHERE nations.name=$1 AND nations.guild_id=$7;',
+        text: 'INSERT INTO nations(name, description, color, thumbnail, message, role, guild, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
+            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message=$5, role=$6, isunique=$8 WHERE nations.name=$1 AND nations.guild=$7;',
         values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
 
     };
@@ -361,49 +361,13 @@ function createNation(name, description, thumbnail, message_id, role, isUnique) 
     });
 }
 
-function createEventNation(name, description, thumbnail, message_id, channel, role, isUnique) {
-    let colorCode;
-    colorCode = role.color;
-    let query = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, channel, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, channel, isUnique]
-    };
-    let exists = {
-        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let remove = {
-        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let query2 = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
-            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message_id=$5, role_id=$6, channel=$8, isunique=$9 WHERE nations.name=$1 AND nations.guild_id=$7;',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, channel, isUnique]
-
-    };
-    return pool.query(query2).catch(function (err) {
-        console.error('createEventNation ' + err);
-    });
-}
-
 function removeNation(guild, name) {
     let query = {
-        text: 'DELETE from nations where name=$1 AND guild_id=$2;',
+        text: 'DELETE from nations where name=$1 AND guild=$2;',
         values: [name, guild.id]
     };
     return pool.query(query).catch(function (err) {
         console.error('dao.removeNation ' + err);
-    });
-}
-
-function removeEventNation(guild, name) {
-    let query = {
-        text: 'DELETE from event_nations where name=$1 AND guild_id=$2;',
-        values: [name, guild.id]
-    };
-    return pool.query(query).catch(function (err) {
-        console.error('dao.removeEventNation ' + err);
     });
 }
 
@@ -421,7 +385,7 @@ function getLocalPowerLevels(guild) {
 
 function blacklistAdmin(user, guild) {
     let query = {
-        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.user_id=$1 AND admin_whitelist.guild_id=$2;',
+        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.user=$1 AND admin_whitelist.guild=$2;',
         values: [user.id, guild.id]
     };
     return pool.query(query).catch(function (err) { console.error('blacklistAdmin() ' + err); });
@@ -429,7 +393,7 @@ function blacklistAdmin(user, guild) {
 
 function whitelistAdmin(user, guild) {
     let query = {
-        text: 'INSERT INTO admin_whitelist(user_id, guild_id, username) values($1 ,$2 ,$3);',
+        text: 'INSERT INTO admin_whitelist(user, guild, username) values($1 ,$2 ,$3);',
         values: [user.id, guild.id, user.tag]
     };
     return pool.query(query).catch(function (err) { console.error('whitelistAdmin() ' + err); });
@@ -437,7 +401,7 @@ function whitelistAdmin(user, guild) {
 
 function getWhiteListedAdmins(guild) {
     let query = {
-        text: 'SELECT * FROM admin_whitelist WHERE admin_whitelist.guild_id=$1;',
+        text: 'SELECT * FROM admin_whitelist WHERE admin_whitelist.guild=$1;',
         values: [guild.id]
     };
     return pool.query(query).then(function (res) { return res; }, function (err) { console.error('getWhiteListedAdmins() ' + err); });
@@ -534,13 +498,13 @@ function isFrozen(guild) {
 }
 
 module.exports = {
+    pool: pool,
     addBan: addBan,
     addMute: addMute,
     addTimedEvent: addTimedEvent,
     assignBotRights: assignBotRights,
     blacklistAdmin: blacklistAdmin,
     clearActiveRole: clearActiveRole,
-    createEventNation: createEventNation,
     getActiveDelay: getActiveDelay,
     getActiveRoles: getActiveRoles,
     getBans: getBans,
@@ -560,7 +524,6 @@ module.exports = {
     registerGuild: registerGuild,
     getGuilds: getGuilds,
     getGuildProperties: getGuildProperties,
-    removeEventNation: removeEventNation,
     removeNation: removeNation,
     removePunishment: removePunishment,
     removeTimedEvent: removeTimedEvent,
