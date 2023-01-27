@@ -28,7 +28,7 @@ function init(discordClient) {
 
 app.use(session({
   store: new (require('connect-pg-simple')(session))({
-    pool : dao.pool,
+    pool: dao.pool,
   }),//Store the sessions in the database
   secret: cookieSecret,
   resave: false,
@@ -81,7 +81,7 @@ function errorContext(err, message, secret) {
 function errorDisplay(errs) {
   let string;
   if (!Array.isArray(errs));
-    errs = [errs];
+  errs = [errs];
   errs.forEach(err => {
     string = 'An error occured: ' + err.name + ' : ' + err.message + '\n<table>';
     console.error(err);
@@ -92,7 +92,7 @@ function errorDisplay(errs) {
     }
     string += '</table>';
   });
-return string;
+  return string;
 }
 
 function errorLog(errs) {
@@ -177,7 +177,7 @@ async function generateAdminForms(userGuilds) {
 
   //Cross discord client data and database properties
   for (i = 0; i < guildChannels.length; i++) {
-    if(!guildChannels[i].guild.roles)
+    if (!guildChannels[i].guild.roles)
       continue;
     for (j = 0; j < properties.length; j++) {
       if (guildChannels[i].guild.id === properties[j].id) {
@@ -198,14 +198,15 @@ async function generateAdminForms(userGuilds) {
       res += errorDisplay(errorContext(guildWithChannel.errors, 'at generateAdminForms')) + '</div></form>';
     }
     else {
+      res += '<div class="guildheader">';
       res += `<h2 class="guildname">${guildWithChannel.guild.name}</h2><image class="guildimage" src="${guildWithChannel.guild.iconURL()}" alt="Guild profile picture">`;
       //Welcome channel select
       res += '<div>Welcome channel<select class="w3-input" name="welcome-channel">'
         + '<option value="">--Please choose an option--</option>';
       guildWithChannel.channels.forEach(function (channel) {
-        console.log('Discord: ' + channel.id + 
-        ' Database: ' + guildWithChannel.properties.welcome + 
-        ' Comparison: ' + (channel.id === guildWithChannel.properties.welcome));
+        console.log('Discord: ' + channel.id +
+          ' Database: ' + guildWithChannel.properties.welcome +
+          ' Comparison: ' + (channel.id === guildWithChannel.properties.welcome));
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.welcome ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += '</select></div>';
@@ -220,14 +221,23 @@ async function generateAdminForms(userGuilds) {
       res += '<div>Starboard channel<select class="w3-input" name="starboard-channel">'
         + '<option value="">--Please choose an option--</option>';
       guildWithChannel.channels.forEach(function (channel) {
-        res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.starboard  ? 'selected' : ''}>${channel.name}</option>`;
+        res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.starboard ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += '</select></div>';
       res += `<div>Number of stars required<input class="w3-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>`;
       res += `<div>Delay to mark user as inactive<input name="inactive" class="w3-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>`;
       res += `<div class="inline"><div>Guild is frozen</div><input class="w3-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>`;
       //Existing nations
+      res += '</div>';
       guildWithChannel.properties.nations.forEach(function (nation) {
+        /*res += '<style>';
+        res += `.collapsible:${nation.id} {background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;border: none;text-align: left;outline: none;font-size: 15px;}`;
+        res += `.active, .collapsible:${nation.id}:hover {background-color: #ccc;}`;
+        res += `#nation:${nation.id} {padding: 0 18px;display: none;overflow: hidden;background-color: #f1f1f1;}`;
+        res += '</style>';*/
+        //res += `<button class="collapsible:${nation.id}">${nation.name}</button>`;
+        res += `<button type="button" class="collapsible">${nation.name}</button>`;
+        res += `<div class="onenation collapsed" style="display:none">`;
         res += `<div>Name<input class="w3-input" name="name" value="${nation.name}"></div>`;
         res += `<div>Description<input class="w3-input" name="description" value="${nation.description}"></div>`;
         res += `<div>Thumbnail<input class="w3-input" name="thumbnail" value="${nation.thumbnail}"></div>`;//TODO: Display current thumbnail
@@ -241,12 +251,30 @@ async function generateAdminForms(userGuilds) {
         })
         res += `</select></div>`;
         res += `<div class="inline"><div>Is a nation?</div><input class="w3-input" type="checkbox" name="isunique" ${nation.isunique ? 'checked' : ''}></div>`;//TODO add help context? CSS?
-        res += `<input type="hidden" class="w3-input" name="ranking" value="${nation.anking}">`;
+        res += `<input type="hidden" class="w3-input" name="ranking" value="${nation.ranking}">`;
+        res += '</div>';
       });
+      res += `<script>// Collapse and uncollapse collapsibles
+      var coll = document.getElementsByClassName("collapsible");
+      for (var i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function() {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          console.log("display:");
+          console.log(content.style.display);
+          if (content.style.display === "") {
+            content.style.display = "none";
+          } else {
+            content.style.removeProperty("display");
+          }
+        });
+      }</script>`;
+      res += '<div class="guildfooter">';
+
       //TODO: MOVE NATIONS AROUND
       //TODO: ADD NEW NATION
       res += '<input type="submit" />';
-      res += '</div></form>';//End Guild
+      res += '</div></form></div>';//End Guild
     }
     /**
      * guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
@@ -453,21 +481,19 @@ app.get('/', async (req, response, next) => {
 
 //Formatted error display
 app.use(async (error, req, res, next) => {
-  req.session.state = generateRandomString();
+  //Save session
+  if(req.session){
+    req.session.state = generateRandomString();
+    err = await req.session.save();
+    if (err) 
+      return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+  }
   //Load the authentification URL parameter
-  fs.readFile(root + index, 'utf8', function (fileReadError, data) {
-    if (fileReadError) {
-      return next(errorContext(fileReadError, 'Unable to find index file'));
-    }
-    errorLog(error);
-    req.session.save(function (err) {
-      if (err) {
-        return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
-      }
-      result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '');
-      return res.status(500).send(result);
-    });
-  });
+  let data = fs.readFileSync(root + index, 'utf8');
+  if (!data)
+    return next(errorContext(fileReadError, 'Unable to find index file'));
+  result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '');
+  return res.status(500).send(result);
 });
 
 //Unformatted error display

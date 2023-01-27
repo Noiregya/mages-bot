@@ -81,7 +81,6 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
 @media (min-width:993px){.w3-col.l1{width:8.33333%}.w3-col.l2{width:16.66666%}.w3-col.l3{width:24.99999%}.w3-col.l4{width:33.33333%}
 .w3-col.l5{width:41.66666%}.w3-col.l6{width:49.99999%}.w3-col.l7{width:58.33333%}.w3-col.l8{width:66.66666%}
 .w3-col.l9{width:74.99999%}.w3-col.l10{width:83.33333%}.w3-col.l11{width:91.66666%}.w3-col.l12{width:99.99999%}}
-.w3-content{max-width:980px;margin:auto}.w3-rest{overflow:hidden}
 .w3-cell-row{display:table;width:100%}.w3-cell{display:table-cell}
 .w3-cell-top{vertical-align:top}.w3-cell-middle{vertical-align:middle}.w3-cell-bottom{vertical-align:bottom}
 .w3-hide{display:none!important}.w3-show-block,.w3-show{display:block!important}.w3-show-inline-block{display:inline-block!important}
@@ -238,16 +237,42 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
     padding: 1em; 
 }
 /* Grid */
-.oneguild{
+.guildheader,.onenation{
     display: grid;
-    grid-template-columns: 1fr  1fr;
     row-gap: 0.5em;
     column-gap: 2em;
-    grid-auto-rows: 1fr;
-    grid-template-rows: [first] 128px;
 }
 
-.oneguild div:not(.inline),.guildname,.guildimage{
+@media (min-width:601px){
+    .w3-content{max-width:980px;margin:auto}.w3-rest{overflow:hidden}
+    .guildheader{
+        grid-template-columns: 1fr  1fr;   
+        grid-template-rows: [first] 128px;
+    }
+    .onenation{
+        grid-template-columns: 1fr  1fr;
+    }
+    .guildimage{
+        justify-self: left;
+    }
+}
+
+@media (max-width:600px){
+    .optionnal{display: none;}
+    .w3-content{max-width:490px;margin:auto}.w3-rest{overflow:hidden}
+    .guildheader{
+        grid-template-columns: 1fr;
+        grid-template-rows: [first] 2fr [second] 128px;
+    }
+    .onenation{
+        grid-template-columns: 1fr;
+    }
+    .guildimage{
+        justify-self: center;
+    }
+}
+
+.onenation div:not(.inline),.guildname,.guildimage{
     display: flex;
     flex-direction: column;
 }
@@ -268,21 +293,41 @@ table tr:nth-child(odd){background-color:#f1f1f1}TODO
     align-self: center;
 }
 
-.guildimage{
-    justify-self: left;
-}
-
 .w3-color{
     border:none;
     padding: 0;
 }
 
-@media (max-width:600px){.optionnal {display: none;}}
-
 .mages-image{
     max-width: 600px;
     left:-50%;
 }
+
+/*Collapsibles*/
+/* Style the button that is used to open and close the collapsible content */
+.collapsible {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+  }
+  
+  /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+  .active, .collapsible:hover {
+    background-color: #ccc;
+  }
+  
+  /* Style the collapsible content. Note: hidden by default */
+  .collapsed {
+    padding: 0 18px;
+    overflow: hidden;
+    background-color: #f1f1f1;
+  }
 
 .transparent-bg{
     opacity:0.5;

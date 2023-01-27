@@ -9,9 +9,9 @@ const config = {
     // this object will be passed to the TLSSocket constructor
     ssl: {
         rejectUnauthorized: false,
-        ca: fs.readFileSync(ssl_directory + '/root.crt').toString(),
-        key: fs.readFileSync(ssl_directory + '/postgresql.key').toString(),
-        cert: fs.readFileSync(ssl_directory + '/postgresql.crt').toString(),
+        ca: fs.readFileSync(ssl_directory + '/root.cer').toString(),
+        key: fs.readFileSync(ssl_directory + '/client.key').toString(),
+        cert: fs.readFileSync(ssl_directory + '/client.cer').toString(),
     },
 }
 
