@@ -3,4 +3,3 @@ package-lock.json
 .DS_Store
 run.sh
 run.bat
-reload_flag
