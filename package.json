@@ -1,6 +1,6 @@
 {
   "name": "mages-bot",
-  "version": "2.0.0-Rc",
+  "version": "2.0.1-rc",
   "engines": {
     "node": "^18.12.1"
   },

@@ -1,4 +1,5 @@
 const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
+const fs = require('fs');
 
 //Discord intents
 const client = new Client({
@@ -37,6 +38,28 @@ var calculateYesterday = tools.calculateYesterday;
 var sleep = tools.sleep;
 var inRaid = false;
 var activeRole = null;
+
+//Check for version number change
+try{
+    let versionFlag = '';
+    let version = process.env.npm_package_version;
+    if(version.substring(version.length-2, version.length) === 'rc')
+        console.log('Warning: This is a release candidate, do not run this in production');
+    try{versionFlag = fs.readFileSync('version_flag', 'utf8')}catch{};
+    if(versionFlag !== version){
+        fs.writeFileSync('version_flag', version);
+        console.log('MAGES. updated to version '+version);
+        initialize();
+    }
+}catch(err){
+    console.error(err);
+    initialize();
+};
+
+//The bot version has been changed
+function initialize(){
+    interactions.register();
+}
 
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS /////////////////////////////
 /*
