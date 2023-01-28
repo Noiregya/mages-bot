@@ -40,6 +40,22 @@ function registerGuild(guild) {
     pool.query(query).catch(function (err) { console.error('registerGuild() ' + err); });
 }
 
+function updateGuild(id, name) {
+    var query = {
+        text: 'INSERT INTO guilds(id, name) VALUES($1, $2) ON CONFLICT(id) DO UPDATE SET name = EXCLUDED.name',
+        values: [id, name]
+    };
+    pool.query(query).catch(function (err) { console.error('registerGuild() ' + err); });
+}
+
+function removeGuild(id) {
+    var query = {
+        text:  'DELETE FROM guilds WHERE id=$1',
+        values: [id]
+    };
+    return pool.query(query).catch(function (err) { console.error('removeGuild() ' + err); });
+}
+
 function getGuilds() {
     var query = {
         text: 'SELECT * from guilds'
@@ -48,11 +64,10 @@ function getGuilds() {
 }
 
 function getGuildProperties(guildIds){
-    console.log(guildIds);
     var query = {
         text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
             +'channels.welcome, channels.information, channels.starboard '
-            +'FROM guilds JOIN channels ON guilds.id = channels.guild '
+            +'FROM guilds LEFT OUTER JOIN channels ON guilds.id = channels.guild '
             +'WHERE guilds.id = ANY($1)',
         values: [guildIds]
     };
@@ -163,7 +178,7 @@ function getBans(guild) {
     return pool.query(query).then(function (result) {
         return result;
     }, function (err) {
-        console.error('getField ' + err);
+        console.error('getBans ' + err);
     });
 }
 
@@ -339,24 +354,12 @@ function createNation(name, description, thumbnail, message_id, role, isUnique) 
     let colorCode;
     colorCode = role.color;
     let query = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message, role, guild, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8);',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
-    };
-    let exists = {
-        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild = $2;',
-        values: [name, role.guild.id]
-    };
-    let remove = {
-        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild = $2;',
-        values: [name, role.guild.id]
-    };
-    let query2 = {
         text: 'INSERT INTO nations(name, description, color, thumbnail, message, role, guild, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
             'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message=$5, role=$6, isunique=$8 WHERE nations.name=$1 AND nations.guild=$7;',
         values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
 
     };
-    return pool.query(query2).catch(function (err) {
+    return pool.query(query).catch(function (err) {
         console.error('createNation ' + err);
     });
 }
@@ -422,31 +425,29 @@ function assignBotRights(guild, role, powerLevel) {
 
 function getFriendliness(user) {
     return getField('users', 'id', user, 'friendliness').then(friendlinessQuery => {
-        var value = 10;
-        if (friendlinessQuery.rows.length > 0) {
-            value = friendlinessQuery.rows[0].friendliness;
+        if (friendlinessQuery.rows.length === 0) {
+            return 10;
         }
-        return value;
+        return friendlinessQuery.rows.reduce((partialSum, val) => partialSum + val, 0);
     }, err => { console.error(err); });
 }
 
-function updateFriendliness(user, increment) {
-    return getField('users', 'id', user, friendliness).then(friendlinessQuery => {
-        let amount = 10;
-        let query;
-        if (friendlinessQuery.rows.length > 0) {
-            amount = friendlinessQuery.rows[0].friendliness + increment;
-            query = {
-                text: 'UPDATE users SET friendliness=$2 WHERE id=$1;',
-                values: [user, amount]
-            };
-        } else {
-            amount += increment;
-            query = {
-                text: 'INSERT INTO users(id, friendliness) values($1, $2);',
-                values: [user, amount]
-            };
+function getFriendlinessByGuild(user, guild) {
+    return getFieldByGuild('users', 'friendliness', guild, user).then(friendlinessQuery => {
+        if (friendlinessQuery.rows.length === 0) {
+            return 10;
         }
+        return friendlinessQuery.rows.reduce((partialSum, val) => partialSum + val, 0);
+    }, err => { console.error(err); });
+}
+
+function updateFriendliness(user, guild, increment) {
+    return getFriendlinessByGuild(user, guild).then(value=> {
+        amount = value + increment;
+        query = {
+            text: 'UPDATE users SET friendliness=$2 WHERE id=$1;',
+            values: [user, amount]
+        };
         return pool.query(query).then(function (res) { return amount; }).catch(function (err) { console.error('updateFriendliness() ' + err); });
     });
 }
@@ -522,6 +523,8 @@ module.exports = {
     getWhiteListedAdmins: getWhiteListedAdmins,
     isFrozen: isFrozen,
     registerGuild: registerGuild,
+    updateGuild: updateGuild,
+    removeGuild: removeGuild,
     getGuilds: getGuilds,
     getGuildProperties: getGuildProperties,
     removeNation: removeNation,

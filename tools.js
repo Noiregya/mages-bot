@@ -235,8 +235,6 @@ async function findByName(manager, name){ // jshint ignore:line
 
 function levelEventNotifier(level, guild, name, currentEvent, parameter2){
     dao.getWhiteListedAdmins(guild).then(function(admins){
-        console.log('Admins: ');
-        console.log(admins);
 
         getUsersPower(admins.rows, guild).then(function(powerUsers){
             powerUsers.forEach(function(memberPower){
@@ -621,7 +619,6 @@ async function deleteOneInAChannel(channel, member){// jshint ignore:line
         return;
     }
     var runs = 0;
-    var lastOne;
     let isDone = false;
     while(!isDone || runs < 100){//100 runs * 50 messages = 5000 messages
         runs++;
@@ -972,7 +969,6 @@ async function consumeTimedEvent(client, event){// jshint ignore:line
 function removeRoleFromInactive(guild){
     console.log('Removing inactives from '+guild.name);
     getInactiveMembers(guild,30).then(function(inactives){
-        console.log(guild.name);
         dao.getActiveRoles(guild, false).then(function(roleRes){
 
             inactives.forEach(function(inactive){

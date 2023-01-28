@@ -103,9 +103,11 @@ client.on('ready', function () {
     client.guilds.fetch().then(function (guilds) {
         if (guilds.available)
             guilds = new Array(guilds);
+        business.updateGuilds(guilds);
+        business.pruneGuilds(guilds, false).then(res=>console.log(res));
         guilds.forEach(function (guild) {
-            console.log('Available guild ' + guild.name)
-        })
+            console.log('Available guild ' + guild.name);
+        });
     });
     //TODO cache messages to fix starboard?
     /*.cache.array().forEach(function(guild){//cache channel messages to allow reaction/logs

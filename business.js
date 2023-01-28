@@ -86,6 +86,46 @@ async function raidProtection(member){
     }
 }
 
+function updateGuilds(guilds){
+    guilds.forEach(function (guild) {
+        dao.updateGuild(guild.id, guild.name);
+    });
+}
+
+/**
+ 
+ /* Removes all the guilds the bot isn't in anymore
+
+ */
+
+/**
+ * Detect unused guilds
+ * @param {*} joinedGuilds List of all guilds the bot is in
+ * @param {boolean} toDelete Wether or not to perform deletion
+ */
+async function pruneGuilds(joinedGuilds, toDelete){//TODO: Doesn't work ?
+    //Detect left guilds
+    let result;
+    if(toDelete)
+        result = 'Guilds pruned from the database: \n';
+    else
+        result = 'The following guilds are unused: \n';
+    let knownGuilds = await dao.getGuilds();
+    knownGuilds.rows.forEach(function(dbGuild){
+        let exists;
+        joinedGuilds.forEach(function(joinedGuild){
+            if(dbGuild.id === joinedGuild.id)
+                exists = true;
+        });
+        if(!exists){
+            result += `id: ${dbGuild.id}, name: ${dbGuild.name}\n`;
+            if(toDelete)
+                dao.removeGuild(joinedGuild.id);
+        }
+    });
+    return result;
+}
+
 //Welcome a new member, add roles if setup
 function addRolesToNewMember(member){
     if(member != null){
@@ -247,6 +287,8 @@ module.exports = {
     muteUnmute: muteUnmute,
     parrot: parrot,
     toggleWhitelist: toggleWhitelist,
+    updateGuilds: updateGuilds,
+    pruneGuilds: pruneGuilds,
     welcomeNewMember: welcomeNewMember,
     preban: preban,
     unban: unban
