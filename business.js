@@ -2,6 +2,9 @@ const tools = require('./tools');
 const dao = require('./dao');
 const { PermissionsBitField } = require('discord.js');
 const personality = require('./personality');
+const interactions = require('./interactions');
+
+const OWNER = process.env.OWNER;
 
 
 //Notify a new member in the dedicated welcome channel (if any)
@@ -82,7 +85,6 @@ async function raidProtection(member){
             console.error(err);
         });
         tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'userFrozen', member);
-
     }
 }
 
@@ -92,18 +94,40 @@ function updateGuilds(guilds){
     });
 }
 
-/**
- 
- /* Removes all the guilds the bot isn't in anymore
+async function register(interaction){
+    if (!interaction.inGuild()){
+        if(interaction.user.id === OWNER)
+            return await interactions.register();
+        return 'This command is reserved to the bot owner';
+    }else{
+        if(interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
+            return await interactions.register(interaction.guild);
+        else 
+            return 'This command is reserved to administrators';
+    }
+    
+}
 
+/**
+ * Deletes all references in the database for guilds the bot left
+ * @param {Interaction} interaction command interaction
+ * @returns 
  */
+async function prune(interaction){
+    return await interaction.client.guilds.fetch().then(async function(guilds){
+        if(interaction.user.id === OWNER)
+            return await pruneGuilds(guilds, true);
+        else
+            return 'This command is reserved to the bot owner';
+    });
+}
 
 /**
  * Detect unused guilds
  * @param {*} joinedGuilds List of all guilds the bot is in
  * @param {boolean} toDelete Wether or not to perform deletion
  */
-async function pruneGuilds(joinedGuilds, toDelete){//TODO: Doesn't work ?
+async function pruneGuilds(joinedGuilds, toDelete){
     //Detect left guilds
     let result;
     if(toDelete)
@@ -120,7 +144,7 @@ async function pruneGuilds(joinedGuilds, toDelete){//TODO: Doesn't work ?
         if(!exists){
             result += `id: ${dbGuild.id}, name: ${dbGuild.name}\n`;
             if(toDelete)
-                dao.removeGuild(joinedGuild.id);
+                dao.removeGuild(dbGuild.id);
         }
     });
     return result;
@@ -220,14 +244,14 @@ async function toggleWhitelist(member){
         let whitelisted = whitelistedRows && whitelistedRows.rows.find(row => row.user == member.user.id);
 
         if(whitelisted){
-            res = await dao.blacklistAdmin(member.user, member.guild).catch(function(err){
+            await dao.blacklistAdmin(member.user, member.guild).catch(function(err){
                 message = 'Error: '+err;
                 return message;
             });
             message = 'You will not receive generic notifications anymore.';
 
         }else if(member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
-            let res = await dao.whitelistAdmin(member.user, member.guild).catch(function(err){
+            await dao.whitelistAdmin(member.user, member.guild).catch(function(err){
                 message = 'Error: '+err;
                 return message;
             });
@@ -299,10 +323,12 @@ module.exports = {
     muteUnmute: muteUnmute,
     muteList: muteList,
     parrot: parrot,
-    toggleWhitelist: toggleWhitelist,
-    updateGuilds: updateGuilds,
-    pruneGuilds: pruneGuilds,
-    welcomeNewMember: welcomeNewMember,
     preban: preban,
-    unban: unban
+    prune: prune,
+    pruneGuilds: pruneGuilds,
+    register: register,
+    toggleWhitelist: toggleWhitelist,
+    unban: unban,
+    updateGuilds: updateGuilds,
+    welcomeNewMember: welcomeNewMember
 }
