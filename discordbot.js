@@ -32,33 +32,37 @@ const dayInMS = 86400000;
 
 const HELP_MESSAGE = tools.help;
 
-var deleteAllInAChannel = tools.deleteAllInAChannel;
-var deleteOneInAChannel = tools.deleteOneInAChannel;
-var calculateYesterday = tools.calculateYesterday;
-var sleep = tools.sleep;
-var inRaid = false;
-var activeRole = null;
-
+function wasUpdated(){
 //Check for version number change
-try{
-    let versionFlag = '';
-    let version = process.env.npm_package_version;
-    if(version.substring(version.length-2, version.length) === 'rc')
-        console.log('Warning: This is a release candidate, do not run this in production');
-    try{versionFlag = fs.readFileSync('version_flag', 'utf8')}catch{};
-    if(versionFlag !== version){
-        fs.writeFileSync('version_flag', version);
-        console.log('MAGES. updated to version '+version);
-        initialize();
-    }
-}catch(err){
-    console.error(err);
-    initialize();
-};
+    try {
+        let versionFlag = '';
+        let version = process.env.npm_package_version;
+        if (version.substring(version.length - 2, version.length) === 'rc')
+            console.log('Warning: This is a release candidate, do not run this in production');
+        try { versionFlag = fs.readFileSync('version_flag', 'utf8') } catch { };
+        if (versionFlag !== version) {
+            fs.writeFileSync('version_flag', version);
+            console.log('MAGES. updated to version ' + version);
+            return true;
+            //initialize();
+        }
+    } catch (err) {
+        console.error(err);
+        return true;
+        //initialize();
+    };
+}
 
 //The bot version has been changed
-function initialize(){
+function initialize() {
     interactions.register();
+    //Update all servers
+    client.guilds.fetch().then(function (guilds) {
+        guilds.forEach(function(guild){
+            interactions.register(guild);
+        })
+        console.log(`Global commands updated\nGuild commands updated for ${guilds.size} guilds`);
+    });
 }
 
 ///////////////////////////// DEBUG DISPLAY ALL EVENTS /////////////////////////////
@@ -82,6 +86,8 @@ patchEmitter(client);
 
 ///// On even ready /////
 client.on('ready', function () {
+    if(wasUpdated())
+        initialize();
     //Start website
     webpage.init(client);
     //Initialize client
@@ -104,7 +110,7 @@ client.on('ready', function () {
         if (guilds.available)
             guilds = new Array(guilds);
         business.updateGuilds(guilds);
-        business.pruneGuilds(guilds, false).then(res=>console.log(res));
+        business.pruneGuilds(guilds, false).then(res => console.log(res));
         guilds.forEach(function (guild) {
             console.log('Available guild ' + guild.name);
         });
@@ -161,10 +167,11 @@ client.on(Events.InteractionCreate, async interaction => {
                     interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'register':
-                if (interaction.inGuild())
-                    res = await interactions.register(interaction.guild);
-                else //TODO: Check if the command was issued by the bot owner
-                    res = await interactions.register();
+                res = await business.register(interaction);
+                await interaction.reply({ content: res, ephemeral: true });
+                break;
+            case 'prune':
+                res = await business.prune(interaction);
                 await interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'preban':
