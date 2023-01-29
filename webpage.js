@@ -172,7 +172,7 @@ function generateNationHtml(id, name, description, thumbnail, color, roles, curr
           <div class="inline"><div>Is a nation?</div><input class="mB-input" type="checkbox" name="isunique" ${isUnique ? 'checked' : ''}></div>
           <input type="hidden" class="mB-input" name="ranking" value="${ranking ? ranking : 0}">
           <input type="hidden" class="mB-input" name="id" value="${id ? id : 0}">
-          </div>`;
+          </div><hr>`;
           return res;
 }
 
@@ -215,12 +215,12 @@ async function generateAdminForms(userGuilds) {
 
   //Générer onglets
   res += `<div class="mB-padding-32" style="pointer-events: auto;">
-              <div class="mB-bar mB-border" id="tabbar">`;
+              <div class="mB-bar" id="tabbar">`;
   guildChannels.forEach(function (guildWithChannel) {
     if (!guildWithChannel.errors) {
       res += `<image src="${guildWithChannel.guild.iconURL()}" alt="${guildWithChannel.guild.name}" 
               style="width:64px" class="tab-${guildWithChannel.guild.id} tablinks mB-bar-item mB-button mB-light-grey"
-              onclick="toggleGuild(event.target)">`;
+              onclick="toggleGuild('${guildWithChannel.guild.id}')">`;
     }
   });
   res += `<a class="newguild tablinks mB-bar-item mB-button"
@@ -269,12 +269,12 @@ async function generateAdminForms(userGuilds) {
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
               <div class="inline"><div>Guild is frozen</div><input class="mB-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>
-              </div>
-              <a class=="mB-button" onclick="addNation(event.target)">Create a new nation</a>`;
+              </div><hr>
+              <a class="mB-button mB-sudo-button" onclick="addNation(event.target)">Create a new nation</a>`;
               
-      guildWithChannel.properties.nations.forEach(function(nation){//todo roles
+      guildWithChannel.properties.nations.forEach(function(nation){
         res += generateNationHtml(nation.id, nation.name, nation.description, nation.thumbnail, nation.color, guildWithChannel.roles, nation.role, nation.isUnique, nation.ranking);
-      });//TODO: HERE
+      });
       //Send the list of guild roles to the client
       res += `<div class="guildRoles" style="display:none">
         {"guild":"${guildWithChannel.guild.id}","roles":${JSON.stringify(guildWithChannel.roles)}}
@@ -291,7 +291,7 @@ async function generateAdminForms(userGuilds) {
       </script>`;*/
       //TODO: MOVE NATIONS AROUND
       //TODO: ADD NEW NATION
-      res += '<div class="guildfooter"><input type="submit" />';
+      res += '<div class="guildfooter"><input class="mB-button" type="submit" />';
       res += '</div></form></div>';//End Guild
     }
     res += `<script>// Collapse and uncollapse collapsibles
@@ -313,9 +313,10 @@ async function generateAdminForms(userGuilds) {
         let wrapper= document.createElement('div');
         wrapper.innerHTML = generateNationHtml(null, null, null, null, null, roles, null, null, null);
         console.log(wrapper.childNodes);
-        let newNode = wrapper.lastChild;
+        let newNode = wrapper.children[1];
         console.log(newNode);
         newNode.classList.remove('collapsed');
+        target.parentNode.insertBefore(wrapper.children[2], target.nextSibling);
         target.parentNode.insertBefore(newNode, target.nextSibling);
       }
       ${generateNationHtml.toString()}
