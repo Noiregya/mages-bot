@@ -114,7 +114,8 @@ button,html [type=button],[type=reset],[type=submit]{-webkit-appearance:button}
     border: none;
     text-align: left;
     width: 100%;
-  }
+    border-radius: 0.5em;
+}
 
 hr {
     border: none;
@@ -161,7 +162,7 @@ hr:after {
     cursor: pointer;
     padding: 14px 16px;
     transition: 0.3s;
-  }
+}
 
 .mB-panel .mB-center .mB-opacity{
     pointer-events: none;

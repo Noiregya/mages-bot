@@ -171,6 +171,8 @@ function generateNationHtml(id, name, description, thumbnail, color, roles, curr
           res += `</select></div>
           <div class="inline"><div>Is a nation?</div><input class="mB-input" type="checkbox" name="isunique" ${isUnique ? 'checked' : ''}></div>
           <input type="hidden" class="mB-input" name="ranking" value="${ranking ? ranking : 0}">
+          <a class="mB-button" onclick="deleteNation(event.target)">Delete nation</a>
+          <input type="hidden" class="mB-input" name="deleted" value="false">
           <input type="hidden" class="mB-input" name="id" value="${id ? id : 0}">
           </div><hr>`;
           return res;
@@ -270,7 +272,7 @@ async function generateAdminForms(userGuilds) {
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
               <div class="inline"><div>Guild is frozen</div><input class="mB-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>
               </div><hr>
-              <a class="mB-button mB-sudo-button" onclick="addNation(event.target)">Create a new nation</a>`;
+              <a class="mB-button" onclick="addNation(event.target)">Create a new nation</a>`;
               
       guildWithChannel.properties.nations.forEach(function(nation){
         res += generateNationHtml(nation.id, nation.name, nation.description, nation.thumbnail, nation.color, guildWithChannel.roles, nation.role, nation.isUnique, nation.ranking);
@@ -291,57 +293,64 @@ async function generateAdminForms(userGuilds) {
       </script>`;*/
       //TODO: MOVE NATIONS AROUND
       //TODO: ADD NEW NATION
-      res += '<div class="guildfooter"><input class="mB-button" type="submit" />';
-      res += '</div></form></div>';//End Guild
+      res += `<div class="guildfooter"><input class="mB-button" type="submit" />
+              <a class="mB-button" onclick="location.reload()">Reset values</a>
+              </div></form></div>`;//End Guild
     }
-    res += `<script>// Collapse and uncollapse collapsibles
-      function addNation(target){
-        let guild = target.parentNode.id;
-        let domRolesElements = document.getElementsByClassName("guildRoles");
-        let roles;
-        for(let i=0; i < domRolesElements.length; i++){
-          console.log(domRolesElements[i].innerHTML.trim());
-          let object = JSON.parse(domRolesElements[i].innerHTML.trim());
-          console.log(object);
-          if(object.guild === guild){
-            roles = object.roles;
-            break;
-          }
-        }
-
-        console.log(roles);
-        let wrapper= document.createElement('div');
-        wrapper.innerHTML = generateNationHtml(null, null, null, null, null, roles, null, null, null);
-        console.log(wrapper.childNodes);
-        let newNode = wrapper.children[1];
-        console.log(newNode);
-        newNode.classList.remove('collapsed');
-        target.parentNode.insertBefore(wrapper.children[2], target.nextSibling);
-        target.parentNode.insertBefore(newNode, target.nextSibling);
-      }
-      ${generateNationHtml.toString()}
-      var coll = document.getElementsByClassName("collapsible");
-      for (i = 0; i < coll.length; i++) {
-        console.log("loading 1");
-        coll[i].addEventListener("click", function() {
-          this.classList.toggle("active");
-          var content = this.nextElementSibling;
-          if (content.style.maxHeight){
-            content.style.maxHeight = null;
-          } else {
-            content.style.maxHeight = content.scrollHeight + "px";
-          }
-        });
-      }</script>`;
     /**
      * guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
             +'channels.welcome, channels.information, channels.starboard '
      */
   });
-  //Display unmanaged guilds
-  otherGuilds.forEach(otherGuild => {
-    res += '<div>MAGES. isnt in ' + otherGuild.name + ' yet</div>\n';//Guild unknown by MAGES.
-  });
+  //Client side javascript
+  res += `<script>
+  function deleteNation(target){
+    if(window.confirm("Are you sure you want to remove this nation?")){
+      target.nextSibling.value = true;
+      target.parentNode.style.display="none";
+      target.parentNode.nextSibling.style.display="none";
+      let button = target.parentNode.previousSibling.previousSibling;
+      if(button.classList.contains("collapsible"))
+        target.parentNode.previousSibling.previousSibling.style.display="none";
+    }
+  }
+  function addNation(target){
+    let guild = target.parentNode.id;
+    let domRolesElements = document.getElementsByClassName("guildRoles");
+    let roles;
+    for(let i=0; i < domRolesElements.length; i++){
+      console.log(domRolesElements[i].innerHTML.trim());
+      let object = JSON.parse(domRolesElements[i].innerHTML.trim());
+      console.log(object);
+      if(object.guild === guild){
+        roles = object.roles;
+        break;
+      }
+    }
+    console.log(roles);
+    let wrapper= document.createElement('div');
+    wrapper.innerHTML = generateNationHtml(null, null, null, null, null, roles, null, null, null);
+    console.log(wrapper.childNodes);
+    let newNode = wrapper.children[1];
+    console.log(newNode);
+    newNode.classList.remove('collapsed');
+    target.parentNode.insertBefore(wrapper.children[2], target.nextSibling);
+    target.parentNode.insertBefore(newNode, target.nextSibling);
+  }
+  ${generateNationHtml.toString()}
+  var coll = document.getElementsByClassName("collapsible");
+  for (i = 0; i < coll.length; i++) {
+    console.log("loading 1");
+    coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var content = this.nextElementSibling;
+      if (content.style.maxHeight){
+        content.style.maxHeight = null;
+      } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+      }
+    });
+  }</script>`;
   return res;
 }
 
