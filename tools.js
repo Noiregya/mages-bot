@@ -235,8 +235,6 @@ async function findByName(manager, name){ // jshint ignore:line
 
 function levelEventNotifier(level, guild, name, currentEvent, parameter2){
     dao.getWhiteListedAdmins(guild).then(function(admins){
-        console.log('Admins: ');
-        console.log(admins);
 
         getUsersPower(admins.rows, guild).then(function(powerUsers){
             powerUsers.forEach(function(memberPower){
@@ -360,7 +358,7 @@ function randomReiReact(){
 }
 
 function getRandomNation(guild){
-    return dao.getNations(guild).then(function(nations){
+    return dao.getNations(guild.id).then(function(nations){
         let realNations = [];
         nations.rows.forEach(function(nation){
             if(nation.isunique){
@@ -492,10 +490,10 @@ function decorate(embed, description, authorName, authorIcon, timestamp, color){
 async function getMemberNation(member){ // jshint ignore:line
     if (member !== null){
         //get nation
-        return await dao.getNations(member.guild).then(async function(nations){ // jshint ignore:line
+        return await dao.getNations(member.guild.id).then(async function(nations){ // jshint ignore:line
             var result;
             await nations.rows.forEach(function(nation){ // jshint ignore:line
-                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role_id && nation.isunique);
+                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role && nation.isunique);
                 if(correspondingNation.array().length !== 0){
                     result = correspondingNation.array()[0];
                 }
@@ -511,7 +509,7 @@ function updateInfoMessage(channel, member, dao){
     deleteOneInAChannel(channel, member);
     let guild = channel.guild;
     channel.send('\`\`\`React to the below messages to join a nation and secret rooms!\`\`\`').catch(function(err){console.error('updateInfoMessage() '+err);});
-    dao.getNations(guild).then(function(nations){
+    dao.getNations(guild.id).then(function(nations){
         nations.rows.forEach(function(currentNation){
             let embedNation = {
                 embed: {
@@ -527,14 +525,13 @@ function updateInfoMessage(channel, member, dao){
                 }, function(err){
                     console.error("Could not react "+err);
                 });
-                let role = guild.roles.resolve(currentNation.role_id);
+                let role = guild.roles.resolve(currentNation.role);
                 dao.updateMessageId(role, message.id);
             }, function(err){
                 console.error("Couldn't send message "+err);
             });
         });
         //Shares
-        let fieldsArray = [];
 
         makeShareMessage(guild).then(function(shareMessage){
             channel.send(shareMessage).then(function(message){
@@ -622,7 +619,6 @@ async function deleteOneInAChannel(channel, member){// jshint ignore:line
         return;
     }
     var runs = 0;
-    var lastOne;
     let isDone = false;
     while(!isDone || runs < 100){//100 runs * 50 messages = 5000 messages
         runs++;
@@ -692,14 +688,14 @@ function leaveNation(role, member, nations){
 
 function getShares(guild){
     return guild.members.fetch().then(function(memberCollection){
-        return dao.getNations(guild).then(function(nationsRequest){
+        return dao.getNations(guild.id).then(function(nationsRequest){
             let countArray = [];
             nationsRequest.rows.forEach(function(nationRequest){
                 if(nationRequest.isunique){
                     let memberCount = 0;
                     memberCollection.array().forEach(function(member){
                         member.roles.cache.forEach(function(role){
-                            if(role.id == nationRequest.role_id){
+                            if(role.id == nationRequest.role){
                                 memberCount++;
                             }
                         });
@@ -973,7 +969,6 @@ async function consumeTimedEvent(client, event){// jshint ignore:line
 function removeRoleFromInactive(guild){
     console.log('Removing inactives from '+guild.name);
     getInactiveMembers(guild,30).then(function(inactives){
-        console.log(guild.name);
         dao.getActiveRoles(guild, false).then(function(roleRes){
 
             inactives.forEach(function(inactive){

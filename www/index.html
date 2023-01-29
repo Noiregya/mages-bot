@@ -16,19 +16,44 @@
     letter-spacing: 6px
   }
 
-  .w3-row-padding img {
+  .mB-row-padding img {
     margin-bottom: 12px
   }
 </style>
 
 <body class="mages-bg">
-  <script>
+  <script language="JavaScript">
+    var openDialog = function(uri, name, options, closeCallback) {
+      var win = window.open(uri, name, options);
+      var interval = window.setInterval(function() {
+        try {
+            if (win == null || win.closed) {
+                window.clearInterval(interval);
+                location.reload();
+            }
+          }
+          catch (e) {
+          }
+      }, 1000);
+      return win;
+    };
     function showPage(pageName) {
       hideAll();
       // Show the current tab, and add an "active" class to the button that opened the tab
       document.getElementById(pageName).style.display = "block";
       let button = document.getElementsByClassName(pageName)[0];
-      button.className += " w3-light-grey";
+      button.className += " mB-light-grey";
+    }
+
+    function toggleGuild(guildId) {
+      console.log(guildId);
+      tabcontent = document.getElementsByClassName("oneguild");
+      //Hide all the guilds
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      //Display the guild
+      document.getElementById(guildId).style.display = "block";
     }
 
     function showError() {
@@ -49,39 +74,37 @@
       // Get all elements with class="tablinks" and remove the class "active"
       tablinks = document.getElementsByClassName("tablinks");
       for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" w3-light-grey", "");
+        console.log(tablinks[i].className);
+        tablinks[i].className = tablinks[i].className.replace(" mB-light-grey", "");
       }
-
     }
+
   </script>
   <!-- !PAGE CONTENT! -->
-  <div class="w3-content" style="max-width:1500px">
+  <div class="mB-content">
     <div class="account">{AUTHENTIFICATION_BLOCK}</div>
     <!-- Header -->
-    <header class="w3-panel w3-center w3-opacity" style="padding:8px 16px; pointer-events: none">
-      <h1 class="w3-xlarge">ENLIGHTENED BOT</h1>
+    <header class="mB-panel mB-center mB-opacity" style="padding:8px 16px; pointer-events: none">
+      <h1 class="mB-xlarge">ENLIGHTENED BOT</h1>
       <h1>MAGES.</h1>
 
-      <div class="w3-padding-32" style="pointer-events: auto;">
-        <div class="w3-bar w3-border" id="tabbar">
-          <button class="home tablinks w3-bar-item w3-button w3-light-grey"
+      <div class="mB-padding-32" style="pointer-events: auto;">
+        <div class="mB-bar mB-border" id="tabbar">
+          <button class="home tablinks mB-bar-item mB-button mB-light-grey"
             onclick="showPage(event.target.className.split(' ')[0])">Home</button>
-          <button class="settings tablinks w3-bar-item w3-button"
+          <button class="settings tablinks mB-bar-item mB-button"
             onclick="showPage(event.target.className.split(' ')[0])">My
             Settings</button>
-          <button class="documentation tablinks w3-bar-item w3-button"
+          <button class="documentation tablinks mB-bar-item mB-button"
             onclick="showPage(event.target.className.split(' ')[0])">Documentation</button>
         </div>
       </div>
     </header>
 
     <div class="tabcontent" id="home">
-      <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter optionnal">
-          <img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%;">
-        </div>
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
 
-        <div class="w3-half content-block">
+        <div class="content-block">
           <h3>Greetings, I'm MAGES. the mad magician.</h3>
           I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control
           Discord.<br />
@@ -94,12 +117,9 @@
        Content -->
 
     <div class="tabcontent" id="settings" style="display:none">
-      <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter optionnal">
-          <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%"></div>
-        </div>
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
 
-        <div class="w3-half content-block">
+        <div class="content-block">
           {ADMIN_FORMS}
         </div>
       </div>
@@ -107,14 +127,11 @@
     <!-- End Page Content -->
 
     <div class="tabcontent" id="documentation" style="display:none">
-      <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter optionnal">
-          <img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%">
-        </div>
-        <div class="w3-half content-block">
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
+        <div class="content-block">
           <h3>Command list:</h3>
           <h4>Admin commands</h4>
-          <table class="w3-table">
+          <table class="mB-table">
             <tr>
               <td>
                 <div>/register - Updates the command list with the latest</div>
@@ -122,7 +139,7 @@
             </td>
           </table>
           <h4>Moderator commands</h4>
-          <table class="w3-table">
+          <table class="mB-table">
             <tr>
               <td>
                 <div>/mute - List all users muted by the bot</div>
@@ -135,7 +152,7 @@
             </td>
           </table>
           <h4>Public commands</h4>
-          <table class="w3-table">
+          <table class="mB-table">
             <tr>
               <td>
                 <div>/ping - Check if the bot is online</div>
@@ -149,12 +166,9 @@
 
 
     <div class="tabcontent" id="error" style="display:none">
-      <div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-        <div class="w3-quarter optionnal">
-          <div><img class="mages-image" src="./MAGES.-body.png" style="width:100%; opacity: 0%"></div>
-        </div>
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
 
-        <div class="w3-half content-block">
+        <div class="content-block">
           {ERROR_BLOCK}
           <a href="/">Take me back home</a>
         </div>
@@ -163,9 +177,7 @@
     <!-- End Page Content -->
 
     <!-- Footer -->
-    <footer class="w3-container w3-padding-64 w3-light-grey w3-center w3-large">
-      <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank"
-          class="w3-hover-text-green">w3.css</a></p>
+    <footer class="mB-container mB-padding-64 mB-light-grey mB-center mB-large">
     </footer>
     {LOAD_PAGE}
 </body>

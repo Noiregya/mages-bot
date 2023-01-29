@@ -2,16 +2,16 @@ const { Pool } = require('pg');
 const fs = require('fs');
 
 const ssl_directory = process.env.SSL_DIRECTORY;
-//TODO: Catch DAO errors in calls
+//TODO: Improve error management
 
 const config = {
     connectionString: process.env.DATABASE_STRING,
     // this object will be passed to the TLSSocket constructor
     ssl: {
         rejectUnauthorized: false,
-        ca: fs.readFileSync(ssl_directory + '/root.crt').toString(),
-        key: fs.readFileSync(ssl_directory + '/postgresql.key').toString(),
-        cert: fs.readFileSync(ssl_directory + '/postgresql.crt').toString(),
+        ca: fs.readFileSync(ssl_directory + '/pg_root.cer').toString(),
+        key: fs.readFileSync(ssl_directory + '/pg_client.key').toString(),
+        cert: fs.readFileSync(ssl_directory + '/pg_client.cer').toString(),
     },
 }
 
@@ -24,10 +24,10 @@ pool
     })
     .catch(err => console.error('error connecting', err.stack));
 
-function getNations(guild) {
+function getNations(guild_id) {
     var query = {
-        text: 'SELECT * from nations WHERE nations.guild_id = $1 ORDER BY ranking',
-        values: [guild.id]
+        text: 'SELECT * from nations WHERE nations.guild = $1 ORDER BY ranking',
+        values: [guild_id]
     };
     return pool.query(query).catch(function (err) { console.error('getNations() ' + err); });
 }
@@ -40,11 +40,40 @@ function registerGuild(guild) {
     pool.query(query).catch(function (err) { console.error('registerGuild() ' + err); });
 }
 
+function updateGuild(id, name) {
+    var query = {
+        text: 'INSERT INTO guilds(id, name) VALUES($1, $2) ON CONFLICT(id) DO UPDATE SET name = EXCLUDED.name',
+        values: [id, name]
+    };
+    pool.query(query).catch(function (err) { console.error('registerGuild() ' + err); });
+}
+
+function removeGuild(id) {
+    var query = {
+        text:  'DELETE FROM guilds WHERE id=$1',
+        values: [id]
+    };
+    return pool.query(query).catch(function (err) { console.error('removeGuild() ' + err); });
+}
+
 function getGuilds() {
     var query = {
         text: 'SELECT * from guilds'
     };
     return pool.query(query).catch(function (err) { console.error('getGuilds() ' + err); });
+}
+
+function getGuildProperties(guildIds){
+    var query = {
+        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
+            +'channels.welcome, channels.information, channels.starboard '
+            +'FROM guilds LEFT OUTER JOIN channels ON guilds.id = channels.guild '
+            +'WHERE guilds.id = ANY($1)',
+        values: [guildIds]
+    };
+    return pool.query(query).catch(function (err) { 
+        console.error(err);
+        console.error('getGuildProperties() ' + err); });
 }
 
 function setField(table, id_column, id, value_column, value) {
@@ -149,7 +178,7 @@ function getBans(guild) {
     return pool.query(query).then(function (result) {
         return result;
     }, function (err) {
-        console.error('getField ' + err);
+        console.error('getBans ' + err);
     });
 }
 
@@ -159,8 +188,8 @@ function updateShareMessage(guild, message_id) {
 }
 
 //TODO: Test
-function updateActiveRole(guild, activeRoles) {
-    clearActiveRole(guild);
+function updateActiveRole(guild_id, activeRoles) {
+    clearActiveRole(guild_id);
     activeRoles.forEach(function (role) {
         setField('active_role', 'guild', guild_id, 'id', role.id);
     });
@@ -171,10 +200,10 @@ function updateActiveDelay(guild, value) {
     setField('guilds', 'id', guild.id, 'active_delay', value);
 }
 
-function clearActiveRole(guild) {
+function clearActiveRole(guild_id) {
     let query = {
         text: "DELETE FROM active_role WHERE guild=$1",
-        values: [guild.id]
+        values: [guild_id]
     };
     pool.query(query).catch(function (err) {
         console.error('clearActiveRole ' + err);
@@ -312,7 +341,7 @@ function getInfoChannel(guild) {
 
 function updateMessageId(role, messageId) {
     let query = {
-        text: 'UPDATE nations SET message_id = $1 WHERE name = $2 AND guild_id = $3',
+        text: 'UPDATE nations SET message = $1 WHERE name = $2 AND guild = $3',
         values: [messageId, role.name, role.guild.id]
     };
     pool.query(query).then(function (result) {
@@ -325,71 +354,23 @@ function createNation(name, description, thumbnail, message_id, role, isUnique) 
     let colorCode;
     colorCode = role.color;
     let query = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8);',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
-    };
-    let exists = {
-        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let remove = {
-        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let query2 = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
-            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message_id=$5, role_id=$6, isunique=$8 WHERE nations.name=$1 AND nations.guild_id=$7;',
+        text: 'INSERT INTO nations(name, description, color, thumbnail, message, role, guild, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
+            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message=$5, role=$6, isunique=$8 WHERE nations.name=$1 AND nations.guild=$7;',
         values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, isUnique]
 
     };
-    return pool.query(query2).catch(function (err) {
+    return pool.query(query).catch(function (err) {
         console.error('createNation ' + err);
-    });
-}
-
-function createEventNation(name, description, thumbnail, message_id, channel, role, isUnique) {
-    let colorCode;
-    colorCode = role.color;
-    let query = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, channel, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9);',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, channel, isUnique]
-    };
-    let exists = {
-        text: 'SELECT * FROM nations WHERE nations.name = $1 AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let remove = {
-        text: 'DELETE FROM nations WHERE nations.name = $1  AND nations.guild_id = $2;',
-        values: [name, role.guild.id]
-    };
-    let query2 = {
-        text: 'INSERT INTO nations(name, description, color, thumbnail, message_id, role_id, guild_id, isUnique) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
-            'ON CONFLICT ON CONSTRAINT is_nation_unique DO UPDATE SET description=$2, color=$3, thumbnail=$4, message_id=$5, role_id=$6, channel=$8, isunique=$9 WHERE nations.name=$1 AND nations.guild_id=$7;',
-        values: [name, description, colorCode, thumbnail, message_id, role.id, role.guild.id, channel, isUnique]
-
-    };
-    return pool.query(query2).catch(function (err) {
-        console.error('createEventNation ' + err);
     });
 }
 
 function removeNation(guild, name) {
     let query = {
-        text: 'DELETE from nations where name=$1 AND guild_id=$2;',
+        text: 'DELETE from nations where name=$1 AND guild=$2;',
         values: [name, guild.id]
     };
     return pool.query(query).catch(function (err) {
         console.error('dao.removeNation ' + err);
-    });
-}
-
-function removeEventNation(guild, name) {
-    let query = {
-        text: 'DELETE from event_nations where name=$1 AND guild_id=$2;',
-        values: [name, guild.id]
-    };
-    return pool.query(query).catch(function (err) {
-        console.error('dao.removeEventNation ' + err);
     });
 }
 
@@ -407,7 +388,7 @@ function getLocalPowerLevels(guild) {
 
 function blacklistAdmin(user, guild) {
     let query = {
-        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.user_id=$1 AND admin_whitelist.guild_id=$2;',
+        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.user=$1 AND admin_whitelist.guild=$2;',
         values: [user.id, guild.id]
     };
     return pool.query(query).catch(function (err) { console.error('blacklistAdmin() ' + err); });
@@ -415,7 +396,7 @@ function blacklistAdmin(user, guild) {
 
 function whitelistAdmin(user, guild) {
     let query = {
-        text: 'INSERT INTO admin_whitelist(user_id, guild_id, username) values($1 ,$2 ,$3);',
+        text: 'INSERT INTO admin_whitelist(user, guild, username) values($1 ,$2 ,$3);',
         values: [user.id, guild.id, user.tag]
     };
     return pool.query(query).catch(function (err) { console.error('whitelistAdmin() ' + err); });
@@ -423,7 +404,7 @@ function whitelistAdmin(user, guild) {
 
 function getWhiteListedAdmins(guild) {
     let query = {
-        text: 'SELECT * FROM admin_whitelist WHERE admin_whitelist.guild_id=$1;',
+        text: 'SELECT * FROM admin_whitelist WHERE admin_whitelist.guild=$1;',
         values: [guild.id]
     };
     return pool.query(query).then(function (res) { return res; }, function (err) { console.error('getWhiteListedAdmins() ' + err); });
@@ -444,31 +425,29 @@ function assignBotRights(guild, role, powerLevel) {
 
 function getFriendliness(user) {
     return getField('users', 'id', user, 'friendliness').then(friendlinessQuery => {
-        var value = 10;
-        if (friendlinessQuery.rows.length > 0) {
-            value = friendlinessQuery.rows[0].friendliness;
+        if (friendlinessQuery.rows.length === 0) {
+            return 10;
         }
-        return value;
+        return friendlinessQuery.rows.reduce((partialSum, val) => partialSum + val, 0);
     }, err => { console.error(err); });
 }
 
-function updateFriendliness(user, increment) {
-    return getField('users', 'id', user, friendliness).then(friendlinessQuery => {
-        let amount = 10;
-        let query;
-        if (friendlinessQuery.rows.length > 0) {
-            amount = friendlinessQuery.rows[0].friendliness + increment;
-            query = {
-                text: 'UPDATE users SET friendliness=$2 WHERE id=$1;',
-                values: [user, amount]
-            };
-        } else {
-            amount += increment;
-            query = {
-                text: 'INSERT INTO users(id, friendliness) values($1, $2);',
-                values: [user, amount]
-            };
+function getFriendlinessByGuild(user, guild) {
+    return getFieldByGuild('users', 'friendliness', guild, user).then(friendlinessQuery => {
+        if (friendlinessQuery.rows.length === 0) {
+            return 10;
         }
+        return friendlinessQuery.rows.reduce((partialSum, val) => partialSum + val, 0);
+    }, err => { console.error(err); });
+}
+
+function updateFriendliness(user, guild, increment) {
+    return getFriendlinessByGuild(user, guild).then(value=> {
+        amount = value + increment;
+        query = {
+            text: 'UPDATE users SET friendliness=$2 WHERE id=$1;',
+            values: [user, amount]
+        };
         return pool.query(query).then(function (res) { return amount; }).catch(function (err) { console.error('updateFriendliness() ' + err); });
     });
 }
@@ -520,17 +499,16 @@ function isFrozen(guild) {
 }
 
 module.exports = {
+    pool: pool,
     addBan: addBan,
     addMute: addMute,
     addTimedEvent: addTimedEvent,
     assignBotRights: assignBotRights,
     blacklistAdmin: blacklistAdmin,
     clearActiveRole: clearActiveRole,
-    createEventNation: createEventNation,
     getActiveDelay: getActiveDelay,
     getActiveRoles: getActiveRoles,
     getBans: getBans,
-    getEventNations: getNations,
     getFriendliness: getFriendliness,
     getInfoChannel: getInfoChannel,
     getLocalPowerLevels: getLocalPowerLevels,
@@ -545,8 +523,10 @@ module.exports = {
     getWhiteListedAdmins: getWhiteListedAdmins,
     isFrozen: isFrozen,
     registerGuild: registerGuild,
+    updateGuild: updateGuild,
+    removeGuild: removeGuild,
     getGuilds: getGuilds,
-    removeEventNation: removeEventNation,
+    getGuildProperties: getGuildProperties,
     removeNation: removeNation,
     removePunishment: removePunishment,
     removeTimedEvent: removeTimedEvent,
