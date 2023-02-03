@@ -76,7 +76,7 @@ function getGuildProperties(guildIds){
         console.error('getGuildProperties() ' + err); });
 }
 
-function setField(table, id_column, id, value_column, value) {
+function setField(table, id_column, id, value_column, value) {//TODO: ?????
     let query = {
         text: 'UPDATE ' + table + ' SET ' + column + ' = $2 WHERE id = $1',
         values: [id, value]
@@ -364,10 +364,60 @@ function createNation(name, description, thumbnail, message_id, role, isUnique) 
     });
 }
 
-function removeNation(guild, name) {
+function removeNation(guild, name) {//TODO: Use role instead of name
     let query = {
         text: 'DELETE from nations where name=$1 AND guild=$2;',
         values: [name, guild.id]
+    };
+    return pool.query(query).catch(function (err) {
+        console.error('dao.removeNation ' + err);
+    });
+}
+
+function replaceGuild(guild, guildInfo){
+    console.log('----------guild : '+guild);
+    console.log(guildInfo);
+    //welcomeChannel:body.welcome_channel, informationChannel:body.information_channel,
+        //starboardChannel:body.starboard_channel, nbStarboard:body.nb_starboard, inactive:body.inactive && 1, frozen:body.frozen === 'true'
+    let query = {
+        text: 'UPDATE channels SET welcome=$1, information=$2, starboard=$3 where guild=$4;',
+        values: [guildInfo.welcomeChannel, guildInfo.infoChannel, guildInfo.starboardChannel, guild]
+    };
+    pool.query(query).catch(function (err) {
+        console.error('dao.replaceGuild ' + err);
+    });
+    query = {
+        text: 'UPDATE guilds SET nb_star=$1, active_delay=$2, is_frozen=$3 where id=$4;',
+        values: [guildInfo.nbStarboard, guildInfo.inactive, guildInfo.frozen ,guild]
+    };
+    pool.query(query).catch(function (err) {
+        console.error('dao.replaceGuild ' + err);
+    });
+}
+
+function replaceNations(guild, nations){
+    let query = {text: '', values: []};
+    let i=0;//Track nation ranking
+    console.log('----------nations');
+    console.log(nations);
+    nations.forEach(nation=>{
+        let query = {text:`INSERT INTO nations(guild, role, name, description, thumbnail, isunique, ranking) 
+        values($${1}, $${2}, $${3}, $${4}, $${5}, $${6}, $${7}) ON CONFLICT ON CONSTRAINT is_nation_unique DO 
+            UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, thumbnail=EXCLUDED.thumbnail, isunique=EXCLUDED.isunique, ranking=EXCLUDED.ranking;`,
+        values:[guild ,nation.role, nation.name, nation.description, nation.thumbnail, nation.isUnique, i]};
+        i++;
+        pool.query(query).catch(function (err) {
+            console.error('dao.replaceNations ' + err);
+        });
+    });
+}
+
+function removeNations(guild, roles) {//TODO: Implement
+    console.log('----------roles');
+    console.log(roles);
+    let query = {
+        text: 'DELETE from nations where role IN($1) AND guild=$2;',
+        values: [roles, guild.id]
     };
     return pool.query(query).catch(function (err) {
         console.error('dao.removeNation ' + err);
@@ -410,19 +460,6 @@ function getWhiteListedAdmins(guild) {
     return pool.query(query).then(function (res) { return res; }, function (err) { console.error('getWhiteListedAdmins() ' + err); });
 }
 
-function assignBotRights(guild, role, powerLevel) {
-
-    var pow = powerLevel;
-    if (powerLevel > 99 || powerLevel < 0) {
-        pow = 99;
-    }
-    let query = {
-        text: 'INSERT INTO administration(role, guild, powerlevel) values($1 ,$2 ,$3) ON CONFLICT ON CONSTRAINT is_unique_constraint DO UPDATE SET powerlevel=$3 WHERE administration.role=$1 AND administration.guild=$2;',
-        values: [role.id, guild.id, pow]
-    };
-    pool.query(query).catch(function (err) { console.error('assignBotRights() ' + err); });
-}
-
 function getFriendliness(user) {
     return getField('users', 'id', user, 'friendliness').then(friendlinessQuery => {
         if (friendlinessQuery.rows.length === 0) {
@@ -452,44 +489,6 @@ function updateFriendliness(user, guild, increment) {
     });
 }
 
-function addTimedEvent(event) {
-    let date = new Date(event.deadline);
-    let query = {
-        text: 'INSERT INTO time_events (type, location, deadline, metadata) ' +
-            'VALUES ($1, $2, $3, $4) ' +
-            'RETURNING id;',
-        values: [event.type, event.location, date, event.metadata]
-    };
-    return pool.query(query).then(function (res) {
-        return res.rows[0].id;
-    }, function (err) {
-        console.error('dao.addTimedEvent ' + err);
-    });
-}
-
-function removeTimedEvent(event) {
-    let query = {
-        text: 'DELETE FROM time_events ' +
-            'WHERE id = $1;',
-        values: [event.id]
-    };
-    return pool.query(query).catch(function (err) {
-        console.error('dao.removeTimedEvent ' + err);
-    });
-}
-
-function getTimedEvents() {
-    let query = {
-        text: 'SELECT id, type, location, deadline, metadata ' +
-            'FROM time_events'
-    };
-    return pool.query(query).then(function (result) {
-        return result;
-    }, function (err) {
-        console.error('getField ' + err);
-    });
-}
-
 function setFrozen(guild, value) {
     setField('guilds', 'id', guild.id, 'is_frozen', value);
 }
@@ -502,8 +501,6 @@ module.exports = {
     pool: pool,
     addBan: addBan,
     addMute: addMute,
-    addTimedEvent: addTimedEvent,
-    assignBotRights: assignBotRights,
     blacklistAdmin: blacklistAdmin,
     clearActiveRole: clearActiveRole,
     getActiveDelay: getActiveDelay,
@@ -518,7 +515,6 @@ module.exports = {
     getShareMessage: getShareMessage,
     getStarAmount: getStarAmount,
     getStarboardChannel: getStarboardChannel,
-    getTimedEvents: getTimedEvents,
     getWelcomeChannel: getWelcomeChannel,
     getWhiteListedAdmins: getWhiteListedAdmins,
     isFrozen: isFrozen,
@@ -528,8 +524,10 @@ module.exports = {
     getGuilds: getGuilds,
     getGuildProperties: getGuildProperties,
     removeNation: removeNation,
+    replaceGuild: replaceGuild,
+    replaceNations: replaceNations,
+    removeNations: removeNations,
     removePunishment: removePunishment,
-    removeTimedEvent: removeTimedEvent,
     setDefaultActiveRole: setDefaultActiveRole,
     setFrozen: setFrozen,
     setInfoChannel: setInfoChannel,

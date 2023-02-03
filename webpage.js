@@ -1,10 +1,14 @@
 const fs = require('node:fs');
 const express = require('express');
 const session = require('express-session');
+const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require("express-validator");
 const { request } = require('undici');
 const dao = require('./dao');
+const business = require('./business');
+const { PermissionsBitField } = require('discord.js');
 const port = process.env.WEBPORT || 80;
-const publicAddress = process.env.PUBLIC_ADDRESS;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
 const authUrl = process.env.AUTH_URL;
@@ -13,11 +17,14 @@ const inviteLink = process.env.INVITE_LINK;
 
 const root = __dirname + '/www/';
 const index = 'index.html';
-
 const app = express();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
 
 let client;
-
 function init(discordClient) {
   client = discordClient;
 
@@ -26,6 +33,10 @@ function init(discordClient) {
     console.log(`The website is running on port ${port}`);
   });
 }
+
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(limiter);
 
 app.use(session({
   store: new (require('connect-pg-simple')(session))({
@@ -50,14 +61,12 @@ app.use(session({
 */
 
 function generateRandomString() {
-  let randomString = '';
   const randomNumber = Math.floor(Math.random() * 10);
-
+  randomCodes = [];
   for (let i = 0; i < 20 + randomNumber; i++) {
-    randomString += String.fromCharCode(33 + Math.floor(Math.random() * 94));
+    randomCodes.push(0x30 + Math.floor(Math.random() * 0x7e));
   }
-
-  return randomString;
+  return String.fromCharCode(...randomCodes);
 }
 
 // middleware to test if authenticated
@@ -153,14 +162,22 @@ function toColorCode(decimal) {
   return '#' + s.substring(s.length - 6);
 }
 
-function generateNationHtml(id, name, description, thumbnail, color, roles, currentRole, isUnique, ranking){
-  let res = `<button type="button" class="collapsible">${name ? name: ''}</button>
+function complementaryText(color){
+  let r=(color/0xFFFF)%0xFF,g=(color/0xFF)%0xFF,b=color%0xFF;
+  return (r*0.299+g*0.587+b*0.114 > 150 ? 0 : 0xFFFFFF);
+}
+
+function generateBetterCheckbox(name, value){
+  return `<input class="mB-input" type="checkbox" onClick="checkboxEvent(event.target)" name="${name}_box" ${value ? 'checked' : ''}><input type="hidden" name="${name}" value="${!!value}">`
+}
+
+function generateNationHtml(name, description, thumbnail, color, roles, currentRole, isUnique){
+  let res = `<button type="button" ${color ? 'style="background-color:'+toColorCode(color)+'CC;color:'+toColorCode(complementaryText(color))+'"' : ''} class="collapsible">${name ? name: ''}</button>
           <div class="onenation collapsed">
-          <div>Name<input class="mB-input" name="name" value="${name ? name: ''}"></div>
+          <div>Name<input class="mB-input" name="name" value="${name ? name: ''}" required></div>
           <div>Description<input class="mB-input" name="description" value="${description ? description : ''}"></div>
           <div>Thumbnail<input class="mB-input" name="thumbnail" value="${thumbnail ? thumbnail : ''}"></div>
-          <div class="inline"><div>Color</div><div><input class="mB-color" type="color" name="color" value="${color ? toColorCode(color) : ''}"></div></div>
-          <div>Role<select class="mB-input" name="role_${name ? name : ''}">
+          <div>Role<select class="mB-input" name="role" required>
           <option value="">--Please choose an option--</option>`;
           if(roles){
             roles.forEach(role => {
@@ -169,16 +186,14 @@ function generateNationHtml(id, name, description, thumbnail, color, roles, curr
             });
           }
           res += `</select></div>
-          <div class="inline"><div>Is a nation?</div><input class="mB-input" type="checkbox" name="isunique" ${isUnique ? 'checked' : ''}></div>
-          <input type="hidden" class="mB-input" name="ranking" value="${ranking ? ranking : 0}">
+          <div class="inline"><div>Is a nation?</div>${generateBetterCheckbox('isUnique', isUnique)}</div>
           <a class="mB-button" onclick="deleteNation(event.target)">Delete nation</a>
           <input type="hidden" class="mB-input" name="deleted" value="false">
-          <input type="hidden" class="mB-input" name="id" value="${id ? id : 0}">
           </div><hr>`;
           return res;
 }
 
-async function generateAdminForms(userGuilds) {
+async function generateAdminForms(userGuilds, salt) {
   let res = '';
   let botGuilds = await dao.getGuilds();
 
@@ -227,8 +242,8 @@ async function generateAdminForms(userGuilds) {
   });
   res += `<a class="newguild tablinks mB-bar-item mB-button"
                     alt="Invite the bot to a new server" target="popup" 
-                    onclick="openDialog('${inviteLink}', 'popup, \`width=600,height=400,top=\${window.outerHeight/2 - 250},left=\${window.outerWidth/2 - 300}\`')"
-                    return false;">                
+                    onclick="openDialog('${inviteLink}', 'popup', 'width=600,height=400,top=\${window.outerHeight/2 - 250},left=\${window.outerWidth/2 - 300}')"
+                    return="false">
             <svg width="64px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 16.49C11.8011 16.49 11.6103 16.411 11.4697 16.2703C11.329 16.1297 11.25 15.9389 11.25 15.74V7.73999C11.25 7.54108 11.329 7.35031 11.4697 7.20966C11.6103 7.06901 11.8011 6.98999 12 6.98999C12.1989 6.98999 12.3897 7.06901 12.5303 7.20966C12.671 7.35031 12.75 7.54108 12.75 7.73999V15.74C12.75 15.9389 12.671 16.1297 12.5303 16.2703C12.3897 16.411 12.1989 16.49 12 16.49Z" fill="black"/>
             <path d="M16 12.49H8.00001C7.81729 12.4688 7.64874 12.3812 7.5264 12.2438C7.40406 12.1065 7.33646 11.9289 7.33646 11.745C7.33646 11.5611 7.40406 11.3835 7.5264 11.2462C7.64874 11.1088 7.81729 11.0212 8.00001 11H16C16.1989 11 16.3897 11.079 16.5303 11.2197C16.671 11.3603 16.75 11.5511 16.75 11.75C16.75 11.9489 16.671 12.1397 16.5303 12.2803C16.3897 12.421 16.1989 12.5 16 12.5V12.49Z" fill="black"/>
@@ -238,9 +253,9 @@ async function generateAdminForms(userGuilds) {
 
   //Display client discord channels forms for managed guilds
   first = true;
-  guildChannels.forEach(function (guildWithChannel) {
+  guildChannels.forEach(function(guildWithChannel) {
     
-    res += `<form method="POST"><div ${first ? 'style="display: block;"' : 'style="display: none;"'} class="oneguild" id="${guildWithChannel.guild.id}">`;//Open guild div
+    res += `<form method="POST"><div ${first ? 'style="display: block;"' : 'style="display: none;"'} class="oneguild" id="${guildWithChannel.guild.id}" name="${guildWithChannel.guild.id}">`;//Open guild div
     first = false;
     if (guildWithChannel.errors) {
       errorLog(guildWithChannel.errors);
@@ -250,19 +265,20 @@ async function generateAdminForms(userGuilds) {
       res += `<div class="guildheader">
               <h2 class="guildname">${guildWithChannel.guild.name}</h2><image class="guildimage" src="${guildWithChannel.guild.iconURL()}" alt="Guild profile picture">`;
       //Welcome channel select
-      res += `<div>Welcome channel<select class="mB-input" name="welcome-channel">
+      res += `<input name="guild" type="hidden" value="${guildWithChannel.guild.id}">
+              <div>Welcome channel<select class="mB-input" name="welcome_channel">
               <option value="">--Please choose an option--</option>`;
       guildWithChannel.channels.forEach(function (channel) {
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.welcome ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += `</select></div>
-              <div>Information channel<select class="mB-input" name="information-channel">
+              <div>Information channel<select class="mB-input" name="information_channel">
               <option value="">--Please choose an option--</option>`;
       guildWithChannel.channels.forEach(function (channel) {
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.information ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += `</select></div>
-              <div>Starboard channel<select class="mB-input" name="starboard-channel">
+              <div>Starboard channel<select class="mB-input" name="starboard_channel">
               <option value="">--Please choose an option--</option>`;
       guildWithChannel.channels.forEach(function (channel) {
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.starboard ? 'selected' : ''}>${channel.name}</option>`;
@@ -270,50 +286,67 @@ async function generateAdminForms(userGuilds) {
       res += `</select></div>
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
-              <div class="inline"><div>Guild is frozen</div><input class="mB-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>
+              ${generateBetterCheckbox('frozen', guildWithChannel.properties.is_frozen)}
               </div><hr>
               <a class="mB-button" onclick="addNation(event.target)">Create a new nation</a>`;
+              //<div class="inline"><div>Guild is frozen</div><input class="mB-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>
               
-      guildWithChannel.properties.nations.forEach(function(nation){
-        res += generateNationHtml(nation.id, nation.name, nation.description, nation.thumbnail, nation.color, guildWithChannel.roles, nation.role, nation.isUnique, nation.ranking);
-      });
+      for(let i=0; i<guildWithChannel.properties.nations.length; i++){
+        let nation = guildWithChannel.properties.nations[i];
+        let role = guildWithChannel.roles.get(nation.role);
+        let color = role ? role.color : 0x444444 ;
+        res += generateNationHtml(nation.name, nation.description, nation.thumbnail, color, guildWithChannel.roles, nation.role, nation.isUnique);
+      }
+      /*guildWithChannel.properties.nations.forEach(function(nation){
+        let color = guildWithChannel.roles.get(nation.role).color;
+        res += generateNationHtmlnation.name, nation.description, nation.thumbnail, color, guildWithChannel.roles, nation.role, nation.isUnique, nation.ranking);
+      });*/
       //Send the list of guild roles to the client
       res += `<div class="guildRoles" style="display:none">
         {"guild":"${guildWithChannel.guild.id}","roles":${JSON.stringify(guildWithChannel.roles)}}
       </div>`;
-      /*
-      res+=`<script>
-      console.log("Adding guild");
-            if (!guilds)
-              var guilds = [];
-            if (!guilds[${guildWithChannel.guild.id}]){
-              guilds[${guildWithChannel.guild.id}] = {};
-            }
-            guilds[${guildWithChannel.guild.id}].roles=${guildWithChannel.roles};
-      </script>`;*/
       //TODO: MOVE NATIONS AROUND
-      //TODO: ADD NEW NATION
-      res += `<div class="guildfooter"><input class="mB-button" type="submit" />
+      res += `<div class="guildfooter">
+              <input type="hidden" name="salt" value="${salt}">
+              <input class="mB-button" type="submit" />
               <a class="mB-button" onclick="location.reload()">Reset values</a>
               </div></form></div>`;//End Guild
     }
-    /**
-     * guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
-            +'channels.welcome, channels.information, channels.starboard '
-     */
   });
   //Client side javascript
   res += `<script>
-  function deleteNation(target){
-    if(window.confirm("Are you sure you want to remove this nation?")){
-      target.nextSibling.value = true;
-      target.parentNode.style.display="none";
-      target.parentNode.nextSibling.style.display="none";
-      let button = target.parentNode.previousSibling.previousSibling;
-      if(button.classList.contains("collapsible"))
-        target.parentNode.previousSibling.previousSibling.style.display="none";
+  function checkboxEvent(target){
+    console.log(target);
+    if(target.checked){
+      target.nextSibling.value = "true";
+    }else{
+      target.nextSibling.value = "false";
     }
   }
+
+  function deleteNation(target){
+    if(window.confirm("Are you sure you want to remove this nation?")){
+      target.nextSibling.nextSibling.value = "true";
+      //Content
+      target.parentNode.style.display="none";
+      console.log(target.parentNode.previousSibling);
+      console.log(target.parentNode.previousSibling.previousSibling);
+      //Separation bar
+      if(target.parentNode.nextSibling.style){
+        target.parentNode.nextSibling.style.display="none";
+      }else if(target.parentNode.nextSibling.nextSibling.style){
+        target.parentNode.nextSibling.style.display="none";
+      }
+      //TitleBar
+      let button = target.parentNode.previousSibling.previousSibling;
+      if(target.parentNode.previousSibling.previousSibling.classList.contains("collapsible"))
+        target.parentNode.previousSibling.previousSibling.style.display="none";
+      else if(target.parentNode.previousSibling.classList.contains("collapsible")){
+        target.parentNode.previousSibling.style.display="none";
+      }
+    }
+  }
+
   function addNation(target){
     let guild = target.parentNode.id;
     let domRolesElements = document.getElementsByClassName("guildRoles");
@@ -327,20 +360,20 @@ async function generateAdminForms(userGuilds) {
         break;
       }
     }
-    console.log(roles);
     let wrapper= document.createElement('div');
-    wrapper.innerHTML = generateNationHtml(null, null, null, null, null, roles, null, null, null);
-    console.log(wrapper.childNodes);
-    let newNode = wrapper.children[1];
-    console.log(newNode);
-    newNode.classList.remove('collapsed');
+    wrapper.innerHTML = generateNationHtml('New nation', null, null, null, null, roles, null, null);
+    let titleBar = wrapper.children[0];
+    titleBar.classList.add('active');
+    let formContent = wrapper.children[1];
+    formContent.classList.remove('collapsed');
     target.parentNode.insertBefore(wrapper.children[2], target.nextSibling);
-    target.parentNode.insertBefore(newNode, target.nextSibling);
+    target.parentNode.insertBefore(formContent, target.nextSibling);
+    target.parentNode.insertBefore(titleBar, target.nextSibling);
   }
   ${generateNationHtml.toString()}
+  ${generateBetterCheckbox.toString()}
   var coll = document.getElementsByClassName("collapsible");
   for (i = 0; i < coll.length; i++) {
-    console.log("loading 1");
     coll[i].addEventListener("click", function() {
       this.classList.toggle("active");
       var content = this.nextElementSibling;
@@ -355,10 +388,9 @@ async function generateAdminForms(userGuilds) {
 }
 
 //Connect to discord by getting the token then the user object
-async function connect(code) {
-  let user;
+async function connect(code, host) {
   if (code) {
-    let token = await getDiscordToken(code).catch(err => {
+    let token = await getDiscordToken(code, host).catch(err => {
       throw errorContext(err, 'Unable to get discord token with code ' + code);
     });
     if (token) {
@@ -385,11 +417,11 @@ app.get('/login', function (req, res, next) {
   if (req.session.state !== req.query.state)
     return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
   //Attempts to connect to discord API
-  connect(req.query.code).then(function (user) {
+  connect(req.query.code, req.headers.host).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
-        next(errorContext(err, 'Unable to regenerate session'));
+        return next(errorContext(err, 'Unable to regenerate session'));
       }
       req.session.user = user;//Store the user in the session
       //Keep the right tab after redirection
@@ -406,7 +438,7 @@ app.get('/login', function (req, res, next) {
     });
 
   }, function (err) {
-    next(errorContext(err, 'Could not authentify you to the discord API'));
+    return next(errorContext(err, 'Could not authentify you to the discord API'));
   });
 });
 
@@ -420,12 +452,12 @@ app.get('/logout', function (req, res, next) {
   //TODO: Remove cookie from the database
 
   req.session.save(function (err) {
-    if (err) next(err);
+    if (err) return next(err);
 
     // regenerate the session, which is good practice to help
     // guard against forms of session fixation
     req.session.regenerate(function (err) {
-      if (err) next(err);
+      if (err) return next(err);
       res.redirect('/');
     });
   });
@@ -448,8 +480,8 @@ fs.readdirSync(root).forEach(file => {
   }
 });
 
-async function getDiscordToken(code) {
-  let redirect_uri = publicAddress + 'login';
+async function getDiscordToken(code, host) {//TODO: Change for https?
+  let redirect_uri = `http://${host}/login`;
   //Get the token from Discord
   const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
     method: 'POST',
@@ -502,14 +534,15 @@ async function getDiscordGuilds(oauthData) {
   return guilds;
 }
 
-//TODO: Refresh token?
-
 //Page for authentified user
 app.get('/', isAuthenticated, async (req, response, next) => {
   let user = req.session.user;
   let accountInfo = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
   let generateAdminFormsError;
-  let adminForms = await generateAdminForms(user.guilds).catch(err => {
+  //Securize form to make sure the same person loads the forms and submit it
+  let salt = generateRandomString();
+  req.session.salt=salt;
+  let adminForms = await generateAdminForms(user.guilds, salt).catch(err => {
     generateAdminFormsError = errorContext(err, 'Could not generate administration forms');
   });
   if (generateAdminFormsError) return next(generateAdminFormsError);
@@ -521,9 +554,15 @@ app.get('/', isAuthenticated, async (req, response, next) => {
     var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, accountInfo)
       .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
       .replace(/{ADMIN_FORMS}/g, adminForms);
-    return response.send(result);
+      req.session.save(function(err){
+        if (err) return next(err);
+        return response.send(result);
+      });
   });
 });
+
+//TODO: update discord user/regenerate token to account for added guilds in the redirection
+//Make a new math for that
 
 //Page for unauthentificated user
 app.get('/', async (req, response, next) => {
@@ -545,27 +584,57 @@ app.get('/', async (req, response, next) => {
   });
 });
 
-//Formatted error display
-app.use(async (error, req, res, next) => {
-  //Save session
-  if (req.session) {
-    req.session.state = generateRandomString();
-    err = await req.session.save();
-    if (err)
-      return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+app.post('/', async (req, res, next) => {
+  console.log(req.body);
+  //Check that the user is admin of the entered guild
+  let guild = client.guilds.resolve(req.body.guild);
+  let member;
+  if(guild){
+    member = await guild.members.fetch(req.session.user.id);
   }
+  if(!member || !member.permissions.has(PermissionsBitField.Flags.ADMINISTRATOR)){
+    return next(errorContext({name: 'missingPermissionException', message: 'Cannot fetch guild or session owner doesn\'t have admin permission on guild: '+(guild ? guild.name : req.body.guild)},'at app.post(/)'));
+  }
+  //Check that the form was created and sent by the same person
+  if(req.body.salt === req.session.salt){
+    try{
+      business.updateGuild(req.body);
+    }catch(error){
+      return next(errorContext(error, ' at app.post(/)'));
+    }
+    //business.updateGuild(req.body);//.then(result=>{
+      //res.redirect('/updated');
+    //}).catch(err=>{
+    //  console.log('before next res.headersSent');
+    //  return next(errorContext(err, ' at app.post(/)'));
+    //});
+  }
+  res.redirect('/');//TODO: indicate if update have been made
+});
+
+//Formatted error display
+app.use((error, req, res, next) => {
   //Load the authentification URL parameter
   let data = fs.readFileSync(root + index, 'utf8');
   if (!data)
     return next(errorContext(fileReadError, 'Unable to find index file'));
-  result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '');
-  return res.status(500).send(result);
+  result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '').replace(/{LOAD_PAGE}/g, '');
+  if(!res.headersSent){
+    errorLog(error);
+    return res.status(500).send(result);
+  }else{
+    return next(error);
+  }
 });
 
 //Unformatted error display
 app.use(function (err, req, res, next) {
   errorLog(err);
-  res.status(500).send(errorDisplay(err));
+  if(!res.headersSent){
+    res.status(500).send(errorDisplay(err));
+  }else{
+    console.error('Tried to send error despite already sent headers for error above');
+  }
 });
 
 module.exports = {
