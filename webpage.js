@@ -170,7 +170,6 @@ function complementaryText(color){
 function generateBetterCheckbox(name, value){
   return `<input class="mB-input" type="checkbox" onClick="checkboxEvent(event.target)" name="${name}_box" ${value ? 'checked' : ''}><input type="hidden" name="${name}" value="${!!value}">`
 }
-
 function generateNationHtml(name, description, thumbnail, color, roles, currentRole, isUnique){
   let res = `<button type="button" ${color ? 'style="background-color:'+toColorCode(color)+'CC;color:'+toColorCode(complementaryText(color))+'"' : ''} class="collapsible">${name ? name: ''}</button>
           <div class="onenation collapsed">
@@ -309,14 +308,13 @@ async function generateAdminForms(userGuilds, salt) {
       res += `<div class="guildfooter">
               <input type="hidden" name="salt" value="${salt}">
               <input class="mB-button" type="submit" />
-              <a class="mB-button" onclick="location.reload()">Reset values</a>
+              <a class="mB-button" onclick="location.replace('/reload')">Reset values</a>
               </div></form></div>`;//End Guild
     }
   });
   //Client side javascript
   res += `<script>
   function checkboxEvent(target){
-    console.log(target);
     if(target.checked){
       target.nextSibling.value = "true";
     }else{
@@ -329,8 +327,6 @@ async function generateAdminForms(userGuilds, salt) {
       target.nextSibling.nextSibling.value = "true";
       //Content
       target.parentNode.style.display="none";
-      console.log(target.parentNode.previousSibling);
-      console.log(target.parentNode.previousSibling.previousSibling);
       //Separation bar
       if(target.parentNode.nextSibling.style){
         target.parentNode.nextSibling.style.display="none";
@@ -344,6 +340,9 @@ async function generateAdminForms(userGuilds, salt) {
       else if(target.parentNode.previousSibling.classList.contains("collapsible")){
         target.parentNode.previousSibling.style.display="none";
       }
+      for(let item of target.parentNode.getElementsByTagName('select')){
+        item.required=false;
+      }
     }
   }
 
@@ -352,20 +351,19 @@ async function generateAdminForms(userGuilds, salt) {
     let domRolesElements = document.getElementsByClassName("guildRoles");
     let roles;
     for(let i=0; i < domRolesElements.length; i++){
-      console.log(domRolesElements[i].innerHTML.trim());
       let object = JSON.parse(domRolesElements[i].innerHTML.trim());
-      console.log(object);
       if(object.guild === guild){
         roles = object.roles;
         break;
       }
     }
     let wrapper= document.createElement('div');
-    wrapper.innerHTML = generateNationHtml('New nation', null, null, null, null, roles, null, null);
+    wrapper.innerHTML = generateNationHtml('New nation', null, null, null, roles, null, null);
     let titleBar = wrapper.children[0];
     titleBar.classList.add('active');
     let formContent = wrapper.children[1];
-    formContent.classList.remove('collapsed');
+    //formContent.classList.remove('collapsed');
+    formContent.style.maxHeight='none';
     target.parentNode.insertBefore(wrapper.children[2], target.nextSibling);
     target.parentNode.insertBefore(formContent, target.nextSibling);
     target.parentNode.insertBefore(titleBar, target.nextSibling);
@@ -385,28 +383,6 @@ async function generateAdminForms(userGuilds, salt) {
     });
   }</script>`;
   return res;
-}
-
-//Connect to discord by getting the token then the user object
-async function connect(code, host) {
-  if (code) {
-    let token = await getDiscordToken(code, host).catch(err => {
-      throw errorContext(err, 'Unable to get discord token with code ' + code);
-    });
-    if (token) {
-      let user = await getDiscordUser(token).catch(err => {
-        throw errorContext(err, 'Unable to get discord user with token', token); //Token is only going to be visible in the logs
-      });
-      user.guilds = await getDiscordGuilds(token).catch(err => {
-        throw errorContext(err, 'Unable to get discord guilds with token', token);
-      });
-      return user;
-    } else {
-      throw errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'There was an issue with the token', token);
-    }
-  } else {
-    throw errorContext({ name: 'missingApiCode', message: 'at webpage.connect' }, 'API Code missing from the URL');
-  }
 }
 
 //Login logic, redirected from discord
@@ -442,15 +418,31 @@ app.get('/login', function (req, res, next) {
   });
 });
 
+//Reload logic, redirected from discord
+app.get('/reload', function (req, res, next) {
+  //Checks if a code is provided
+  if (!req.session.oAuthData) res.redirect(401, '/');
+  //Attempts to connect to discord API
+  reloadDiscordData(req.session.user).then(function (user) {
+    req.session.user = user;//Store the user in the session
+    //Keep the right tab after redirection
+    req.session.page = 'settings';
+    req.session.save(function (err) {
+      if (err) {
+        return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+      }
+      res.redirect('/');
+    });
+  });
+});
+
 //Logout logic
 app.get('/logout', function (req, res, next) {
   // clear the user from the session object and save.
   // this will ensure that re-using the old session id
   // does not have a logged in user
   req.session.user = null;
-
   //TODO: Remove cookie from the database
-
   req.session.save(function (err) {
     if (err) return next(err);
 
@@ -502,11 +494,30 @@ async function getDiscordToken(code, host) {//TODO: Change for https?
   return res;
 }
 
-async function getDiscordUser(oauthData) {
+async function refreshDiscordToken(refreshToken) {
+  //Refresh the token from Discord
+  const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
+    method: 'POST',
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    }).toString(),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+  });
+  let res = await tokenResponseData.body.json();
+  if (res.error) throw ({ name: res.error, message: res.error_description });
+  return res;
+}
+
+async function getDiscordUser(oAuthData) {
   //Get the identification data from the token
   userResult = await request('https://discord.com/api/users/@me', {
     headers: {
-      authorization: `${oauthData.token_type} ${oauthData.access_token}`, //oauthData.refresh_token, oauthData.expires_in
+      authorization: `${oAuthData.token_type} ${oAuthData.access_token}`, //oAuthData.refresh_token, oAuthData.expires_in
     },
   });
   //Fill the user object
@@ -516,11 +527,11 @@ async function getDiscordUser(oauthData) {
 }
 
 //Get the guilds where the member is admin
-async function getDiscordGuilds(oauthData) {
+async function getDiscordGuilds(oAuthData) {
   //Get the guild data from the token
   guildResult = await request('https://discord.com/api/users/@me/guilds', {
     headers: {
-      authorization: `${oauthData.token_type} ${oauthData.access_token}`, //oauthData.refresh_token, oauthData.expires_in
+      authorization: `${oAuthData.token_type} ${oAuthData.access_token}`, //oAuthData.refresh_token, oAuthData.expires_in
     },
   });
   //Fill the guild object
@@ -534,8 +545,56 @@ async function getDiscordGuilds(oauthData) {
   return guilds;
 }
 
+//Connect to discord by getting the token then the user object
+async function connect(code, host) {
+  if (code) {
+    let oAuthData = await getDiscordToken(code, host).catch(err => {
+      throw errorContext(err, 'Unable to get discord token with code ' + code);
+    });
+    if (oAuthData) {
+      let user = await getDiscordUser(oAuthData).catch(err => {
+        throw errorContext(err, 'Unable to get discord user with token', oAuthData); //Token is only going to be visible in the logs
+      });
+      user.oAuthData = oAuthData;
+      user.dateOAuth = Date.now();
+      user.guilds = await getDiscordGuilds(oAuthData).catch(err => {
+        throw errorContext(err, 'Unable to get discord guilds with token', oAuthData);
+      });
+      return user;
+    } else {
+      throw errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'There was an issue with the token', token);
+    }
+  } else {
+    throw errorContext({ name: 'missingApiCode', message: 'at webpage.connect' }, 'API Code missing from the URL');
+  }
+}
+
+//Connect to discord by getting the token then the user object
+async function reloadDiscordData(user) {
+  let dateOAuth = user.dateOAuth;
+  let oAuthData = user.oAuthData;
+  //Reload the token
+  if(user.oAuthData.expires_in + user.dateOAuth < Date.now()){
+    oAuthData = await refreshDiscordToken(user.oAuthData.refresh_token).catch(err => {
+      throw errorContext(err, 'Unable to get discord token with refreshToken ', user.refreshToken);
+    });
+    dateOAuth = Date.now();
+  }
+  //Reload the user and guilds
+  user = await getDiscordUser(oAuthData).catch(err => {
+    throw errorContext(err, 'Unable to get discord user with token', oAuthData);
+  });
+  user.guilds = await getDiscordGuilds(oAuthData).catch(err => {
+    throw errorContext(err, 'Unable to get discord guilds with token', oAuthData);
+  });
+  user.oAuthData = oAuthData
+  user.dateOAuth = dateOAuth;
+  return user;
+}
+
 //Page for authentified user
 app.get('/', isAuthenticated, async (req, response, next) => {
+  //TODO: Reload discord token 
   let user = req.session.user;
   let accountInfo = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
   let generateAdminFormsError;

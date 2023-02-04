@@ -24,6 +24,12 @@ pool
     })
     .catch(err => console.error('error connecting', err.stack));
 
+/*function numberArrayToPostgresList(data)
+{
+    let values = data.map(([k,v]) => `("${k}", ${v})`).join(",");
+    return `values (${values})`;
+}*/
+
 function getNations(guild_id) {
     var query = {
         text: 'SELECT * from nations WHERE nations.guild = $1 ORDER BY ranking',
@@ -375,13 +381,11 @@ function removeNation(guild, name) {//TODO: Use role instead of name
 }
 
 function replaceGuild(guild, guildInfo){
-    console.log('----------guild : '+guild);
-    console.log(guildInfo);
     //welcomeChannel:body.welcome_channel, informationChannel:body.information_channel,
         //starboardChannel:body.starboard_channel, nbStarboard:body.nb_starboard, inactive:body.inactive && 1, frozen:body.frozen === 'true'
     let query = {
-        text: 'UPDATE channels SET welcome=$1, information=$2, starboard=$3 where guild=$4;',
-        values: [guildInfo.welcomeChannel, guildInfo.infoChannel, guildInfo.starboardChannel, guild]
+        text: 'INSERT INTO channels values($1,$2,$3,$4) ON CONFLICT ON CONSTRAINT channels_pkey DO UPDATE SET welcome=$2, information=$3, starboard=$4;',
+        values: [guild, guildInfo.welcomeChannel, guildInfo.informationChannel, guildInfo.starboardChannel]
     };
     pool.query(query).catch(function (err) {
         console.error('dao.replaceGuild ' + err);
@@ -398,8 +402,6 @@ function replaceGuild(guild, guildInfo){
 function replaceNations(guild, nations){
     let query = {text: '', values: []};
     let i=0;//Track nation ranking
-    console.log('----------nations');
-    console.log(nations);
     nations.forEach(nation=>{
         let query = {text:`INSERT INTO nations(guild, role, name, description, thumbnail, isunique, ranking) 
         values($${1}, $${2}, $${3}, $${4}, $${5}, $${6}, $${7}) ON CONFLICT ON CONSTRAINT is_nation_unique DO 
@@ -413,13 +415,12 @@ function replaceNations(guild, nations){
 }
 
 function removeNations(guild, roles) {//TODO: Implement
-    console.log('----------roles');
     console.log(roles);
     let query = {
-        text: 'DELETE from nations where role IN($1) AND guild=$2;',
-        values: [roles, guild.id]
+        text: `DELETE from nations where role = ANY($1::numeric[]) AND guild=$2;`,
+        values: [roles, guild]
     };
-    return pool.query(query).catch(function (err) {
+    return pool.query(query).then(res=>{console.log(res)}).catch(function (err) {
         console.error('dao.removeNation ' + err);
     });
 }

@@ -55,7 +55,6 @@ async function checkNewMember(member){
         let limitDate = member.user.createdAt;
         limitDate.setDate(limitDate.getDate() +1);
         if(new Date() < limitDate){
-            console.log('New account');
             let role = await tools.findByName(member.guild.roles, 'Muted').then(function(err){console.error(err);});
             member.roles.add(role,"Account is too young").catch(function(err){console.error('MUTE '+err);});
             res = 'muted';
@@ -106,16 +105,19 @@ function updateGuild(body){
         && (numbersOnly.test(body.information_channel) || !body.information_channel.length)
         && (numbersOnly.test(body.starboard_channel) || !body.starboard_channel.length)
         && (numbersOnly.test(body.nb_starboard) || !body.nb_starboard.length)
-    let guildInfo = { welcomeChannel:body.welcome_channel, informationChannel:body.information_channel,
-        starboardChannel:body.starboard_channel, nbStarboard:body.nb_starboard, inactive:body.inactive && 1, frozen:body.frozen === 'true'};
+    let guildInfo = { welcomeChannel:body.welcome_channel || 0, 
+            informationChannel:body.information_channel || 0,
+            starboardChannel:body.starboard_channel || 0, 
+            nbStarboard:body.nb_starboard || 0, 
+            inactive:body.inactive && 1, frozen:body.frozen === 'true'};
     let nations = [];
     let deleted = [];
     if(!isValid)
         throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
-
+        
     if(body.role && body.name){
         for(let i=0; i < body.role.length; i++){
-            if(body.deleted[i] === true){//TODO: Delete nation
+            if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
                 continue;
             }
@@ -130,6 +132,7 @@ function updateGuild(body){
             //}catch(err){console.error(err)};
         }
     }
+    
     if(isValid){
         dao.replaceGuild(body.guild, guildInfo);
         if(nations.length>0)
