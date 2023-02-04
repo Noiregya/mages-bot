@@ -67,7 +67,7 @@ async function checkNewMember(member){
 
 //TODO: Test function
 async function raidProtection(member){
-    let res = await dao.isFrozen(member.guild).catch(function(err){console.log('guildMemberAdd '+err);});
+    let res = await dao.isFrozen(member.guild).catch(function(err){console.error('guildMemberAdd '+err);});
     let isFrozen = res.rows[0].is_frozen;
     if (isFrozen){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){console.error(err);});
@@ -125,7 +125,6 @@ function updateGuild(body){
     let nations = [];
     let deleted = [];
     if(body.role && body.name){
-        console.log(body);
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
@@ -146,8 +145,6 @@ function updateGuild(body){
     if(isValid){
         dao.replaceGuild(body.guild, guildInfo);
         if(nations.length>0){
-            console.log('-------------------------------replaceNations-------------------------');
-            console.log(nations);
             dao.replaceNations(body.guild, nations);
         }
         if(deleted.length>0)
