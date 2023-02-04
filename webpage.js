@@ -307,7 +307,7 @@ async function generateAdminForms(userGuilds, salt) {
       //TODO: MOVE NATIONS AROUND
       res += `<div class="guildfooter">
               <input type="hidden" name="salt" value="${salt}">
-              <input class="mB-button" type="submit" />
+              <input class="mB-button" type="submit" value="Save changes"/>
               <a class="mB-button" onclick="location.replace('/reload')">Reset values</a>
               </div></form></div>`;//End Guild
     }
