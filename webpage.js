@@ -644,7 +644,6 @@ app.get('/', async (req, response, next) => {
 });
 
 app.post('/', async (req, res, next) => {
-  console.log(req.body);
   //Check that the user is admin of the entered guild
   let guild = client.guilds.resolve(req.body.guild);
   let member;
@@ -661,12 +660,6 @@ app.post('/', async (req, res, next) => {
     }catch(error){
       return next(errorContext(error, ' at app.post(/)'));
     }
-    //business.updateGuild(req.body);//.then(result=>{
-      //res.redirect('/updated');
-    //}).catch(err=>{
-    //  console.log('before next res.headersSent');
-    //  return next(errorContext(err, ' at app.post(/)'));
-    //});
   }
   res.redirect('/');//TODO: indicate if update have been made
 });

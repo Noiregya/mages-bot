@@ -3,6 +3,7 @@ const dao = require('./dao');
 const { PermissionsBitField } = require('discord.js');
 const personality = require('./personality');
 const interactions = require('./interactions');
+const { replaceNations } = require('./dao');
 
 const OWNER = process.env.OWNER;
 
@@ -110,12 +111,21 @@ function updateGuild(body){
             starboardChannel:body.starboard_channel || 0, 
             nbStarboard:body.nb_starboard || 0, 
             inactive:body.inactive && 1, frozen:body.frozen === 'true'};
-    let nations = [];
-    let deleted = [];
     if(!isValid)
         throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
-        
+    //Turn values into arrays if they aren't
+    if(!Array.isArray(body.role)){
+        body.role = [body.role];
+        body.name = [body.name];
+        body.description = [body.description];
+        body.thumbnail = [body.thumbnail];
+        body.deleted = [body.deleted];
+        body.isUnique = [body.isUnique];
+    }
+    let nations = [];
+    let deleted = [];
     if(body.role && body.name){
+        console.log(body);
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
@@ -135,8 +145,11 @@ function updateGuild(body){
     
     if(isValid){
         dao.replaceGuild(body.guild, guildInfo);
-        if(nations.length>0)
+        if(nations.length>0){
+            console.log('-------------------------------replaceNations-------------------------');
+            console.log(nations);
             dao.replaceNations(body.guild, nations);
+        }
         if(deleted.length>0)
             dao.removeNations(body.guild, deleted);
     }else{
