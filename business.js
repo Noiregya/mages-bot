@@ -55,7 +55,6 @@ async function checkNewMember(member){
         let limitDate = member.user.createdAt;
         limitDate.setDate(limitDate.getDate() +1);
         if(new Date() < limitDate){
-            console.log('New account');
             let role = await tools.findByName(member.guild.roles, 'Muted').then(function(err){console.error(err);});
             member.roles.add(role,"Account is too young").catch(function(err){console.error('MUTE '+err);});
             res = 'muted';
@@ -73,7 +72,7 @@ async function raidProtection(member){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){console.error(err);});
         res = member.roles.add(role).catch(function(err){
             let message = 'Despite the raid, a mute role could not be given to user '+member.user.tag+' '+err;
-            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'warn', message);
+            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'warn', message);//TODO: Client unavailable
             console.error(message);
             return message;
         });
@@ -92,6 +91,57 @@ function updateGuilds(guilds){
     guilds.forEach(function (guild) {
         dao.updateGuild(guild.id, guild.name);
     });
+}
+
+/**
+ * Replace a guild's information with the form body
+ * @param {DOM form} body 
+ */
+function updateGuild(body){
+    let numbersOnly = new RegExp(/[0-9]+/);
+    let legalCharacters = new RegExp(/[^'"\\]+/);
+    let isValid = (numbersOnly.test(body.guild)) 
+        && (numbersOnly.test(body.welcome_channel) || !body.welcome_channel.length) 
+        && (numbersOnly.test(body.information_channel) || !body.information_channel.length)
+        && (numbersOnly.test(body.starboard_channel) || !body.starboard_channel.length)
+        && (numbersOnly.test(body.nb_starboard) || !body.nb_starboard.length)
+    let guildInfo = { welcomeChannel:body.welcome_channel || 0, 
+            informationChannel:body.information_channel || 0,
+            starboardChannel:body.starboard_channel || 0, 
+            nbStarboard:body.nb_starboard || 0, 
+            inactive:body.inactive && 1, frozen:body.frozen === 'true'};
+    let nations = [];
+    let deleted = [];
+    if(!isValid)
+        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+        
+    if(body.role && body.name){
+        for(let i=0; i < body.role.length; i++){
+            if(body.deleted[i] === 'true' ){//TODO: Delete nation
+                deleted.push(body.role[i])
+                continue;
+            }
+            isValid = isValid
+            && (legalCharacters.test(body.name[i]))
+            && (legalCharacters.test(body.description[i]) || !body.description[i].length)
+            && (numbersOnly.test(body.role[i]))
+            && (legalCharacters.test(body.thumbnail[i]) || !body.thumbnail[i].length);
+            //try{
+            nations.push({name:body.name[i], description:body.description[i], 
+                thumbnail:body.thumbnail[i], role:body.role[i], deleted:body.deleted[i], isUnique:body.isUnique[i] === 'true'});
+            //}catch(err){console.error(err)};
+        }
+    }
+    
+    if(isValid){
+        dao.replaceGuild(body.guild, guildInfo);
+        if(nations.length>0)
+            dao.replaceNations(body.guild, nations);
+        if(deleted.length>0)
+            dao.removeNations(body.guild, deleted);
+    }else{
+        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+    }
 }
 
 async function register(interaction){
@@ -330,5 +380,6 @@ module.exports = {
     toggleWhitelist: toggleWhitelist,
     unban: unban,
     updateGuilds: updateGuilds,
+    updateGuild: updateGuild,
     welcomeNewMember: welcomeNewMember
 }

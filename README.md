@@ -13,8 +13,7 @@ Set the environment variable:
 * oAuth2
 ** APPLICATION_ID: ID of your discord app for 
 ** APPLICATION_SECRET: Secret of your discord app for 
-** PUBLIC_KEY: Public key of your discord app for 
-** PUBLIC_ADDRESS: Public address with port for the local webserver
+** PUBLIC_KEY: Public key of your discord app for
 ** AUTH_URL: oAuth2 URL to authorize the app, scopes identify and guilds
 * COOKIE_SECRET: Secret string to authentify cookies
 Run the command `npm run start`
