@@ -184,7 +184,6 @@ async function updateMenu(interaction){
     let messages = await dao.getMessages(interaction.guildId, 'nation');
     if(messages.rows.length > 0){//Delete if messages exist
         let messageChannel = await interaction.guild.channels.fetch(messages.rows[0].channel).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
-        console.log(messageChannel.name);
         for(message of messages.rows){
             messageChannel.messages.fetch(message.id)
                 .then(fetched=>fetched.delete().catch(err=>{})).catch(err=>{});
@@ -203,11 +202,13 @@ async function updateMenu(interaction){
         let color=0;
         if(discordRole)
             color = discordRole.color;
-        let embed = new EmbedBuilder();
-        embed = embed.setColor(color)
-        embed = embed.setTitle(nation.name)
-        embed = embed.setDescription(nation.description)
-        embed = embed.setThumbnail(nation.thumbnail);
+        let embed = new EmbedBuilder()
+        .setColor(color)
+        .setTitle(nation.name);
+        if(nation.description)
+            embed = embed.setDescription(nation.description);
+        if(nation.thumbnail)
+            embed = embed.setThumbnail(nation.thumbnail);
         //embeds.push(embed);
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
