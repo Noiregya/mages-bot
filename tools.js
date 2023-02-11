@@ -233,22 +233,6 @@ async function findByName(manager, name){ // jshint ignore:line
     return res;
 }
 
-function levelEventNotifier(level, guild, name, currentEvent, parameter2){
-    dao.getWhiteListedAdmins(guild).then(function(admins){
-
-        getUsersPower(admins.rows, guild).then(function(powerUsers){
-            powerUsers.forEach(function(memberPower){
-                if(memberPower.power <= level){
-                    genericEventNotifier(memberPower.member.user, name, currentEvent, parameter2);
-                }else if(memberPower.power >= 99){
-                    //No need to keep track for users without powers
-                    dao.blacklistAdmin(memberPower.member.user, guild);
-                }
-            });
-        });
-    });
-}
-
 //Notify users with a specific permission
 async function permissionEventNotifier(permissionFlag, guild, name, currentEvent, parameter2){
     let res = 'Notification sent to:';
@@ -268,6 +252,41 @@ async function permissionEventNotifier(permissionFlag, guild, name, currentEvent
             console.error(member.user.tag + ' could not be notified\n');
         }
     });
+    return res;
+}
+
+/**
+ * Notify all members with a specific permission flag
+ * @param {*} guild 
+ * @param {*} error 
+ */
+async function permissionErrorNotifier(guild, permissionFlag, error){
+    let res = 'Notification sent to:';
+    let users = [];
+    if(guild){
+        let admins = await dao.getWhiteListedAdmins(guild).catch(function(err){
+            console.error('Error getting whitelisted admins: '+err);
+        });
+        let ids = [];
+        admins.rows.forEach(function(row){
+            ids.push(row.user_id);
+        })
+        let members = await guild.members.fetch({user: ids});
+        members.forEach(function(member){
+            if(member.permissions.has(permissionFlag)){
+                res += '\n' + member.user.tag;
+                users.push(member.user);
+                //genericEventNotifier(member.user, name, currentEvent, parameter2);
+            }else{
+                console.error(member.user.tag + ' could not be notified\n');
+            }
+        });
+    }
+
+    for(user of users){
+        let dm = await user.createDM().catch(err=>console.error('Cannot send DM '+err));
+        dm.send(errorLog(error));
+    }
     return res;
 }
 
@@ -1009,6 +1028,38 @@ function sendNext(pinnedArray ,i ,notLast ,targetChannel){
     }
 }
 
+//Unified method of adding business information to an error object before throwing it
+function errorContext(err, message, secret) {
+    if (!err.business) err.business = []; //Create array if it doesn't exist
+    if (!message) message = 'Failed to provide message element to the errorContext function';//Error if called improperly
+    let rank = err.business.push(message) - 1; //Adds the message to the array and returns the index of that element
+    //Information useful for debugging but that we don't want to show the end user
+    if (secret) {
+      if (!err.secret) err.secret = [];
+      err.secret[rank] = secret; //Secret placed at the same index as the business message
+    }
+    return err;
+}
+
+//Display the logs formatted properly in the logs
+function errorLog(errs) {
+    let string;
+    if (!Array.isArray(errs))
+      errs = [errs];
+    errs.forEach(err => {
+      string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
+      if (err.business) {
+        for (i = 0; i < err.business.length; i++) {
+          string += err.name + ' : ' + err.business[i];
+          if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
+          string += '\n'
+        }
+      }
+      console.error(string);
+    });
+    return string;
+  }
+
 module.exports = {
     asyncForEach: asyncForEach,
     calculateYesterday: calculateYesterday,
@@ -1033,7 +1084,6 @@ module.exports = {
     helpLevels: helpLevels,
     joinNation: joinNation,
     leaveNation: leaveNation,
-    levelEventNotifier: levelEventNotifier,
     loadTimedEvents: loadTimedEvents,
     parseMessage: parseMessage,
     permissionEventNotifier: permissionEventNotifier,
@@ -1050,5 +1100,8 @@ module.exports = {
     updateInfoMessage: updateInfoMessage,
     updateShareMessage: updateShareMessage,
     website: website,
-    resolveChannelString:resolveChannelString
+    resolveChannelString:resolveChannelString,
+    permissionErrorNotifier: permissionErrorNotifier,
+    errorContext: errorContext,
+    errorLog: errorLog
 };

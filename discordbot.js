@@ -60,7 +60,7 @@ function initialize() {
     client.guilds.fetch().then(function (guilds) {
         guilds.forEach(function(guild){
             interactions.register(guild);
-        })
+        });
         console.log(`Global commands updated\nGuild commands updated for ${guilds.size} guilds`);
     });
 }
@@ -98,7 +98,7 @@ client.on('ready', function () {
             //TODO: Send Crash report by message
             DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err => {
                 console.error(err);
-            });
+            });//TODO: Give command examples
         }), err => { console.error(err) };
     }).catch(err => { console.error(err) });
 
@@ -182,6 +182,10 @@ client.on(Events.InteractionCreate, async interaction => {
                 res = await business.unban(interaction);
                 await interaction.reply({ content: res, ephemeral: true });
                 break;
+            case 'menu':
+                res = await business.updateMenu(interaction);
+                await interaction.reply({ content: res, ephemeral: true });
+                break;
         }
     } else if (interaction.isUserContextMenuCommand()) {
         switch (String(interaction.commandName)) {
@@ -196,6 +200,14 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     } else if (interaction.isMessageContextMenuCommand()) {
         //Message context menu commands
+    } else if (interaction.isButton()) {
+        let type = interaction.customId.split('_')[0];
+        switch(type){
+            case 'nation':
+                res = await business.joinNation(interaction);
+            break;
+        }
+        interaction.reply({ content: res, ephemeral: true }).then(interaction.deleteReply());
     }
 
 });

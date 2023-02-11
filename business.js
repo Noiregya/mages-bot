@@ -1,11 +1,11 @@
 const tools = require('./tools');
 const dao = require('./dao');
-const { PermissionsBitField } = require('discord.js');
+const { PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const personality = require('./personality');
 const interactions = require('./interactions');
+const { errors } = require('undici');
 
 const OWNER = process.env.OWNER;
-
 
 //Notify a new member in the dedicated welcome channel (if any)
 async function welcomeNewMember(member){
@@ -156,6 +156,92 @@ async function register(interaction){
             return 'This command is reserved to administrators';
     }
     
+}
+
+async function updateMenu(interaction){
+    let errors  = [];
+    if (!interaction.inGuild())
+        return 'This command is only usable in a guild';
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
+        return 'You must be admin in this guild to use this command';
+    let channels = await dao.getChannels(interaction.guildId);
+    let informationChannelId;
+    if(channels && channels.rows && channels.rows.length > 0)
+        informationChannelId = channels.rows[0].information;
+    if(!informationChannelId || informationChannelId.length<17)
+        return 'Please select a channel in the configuration page to use this command.';
+    //Get existing message
+    let messages = await dao.getMessages(interaction.guildId, 'nation');
+    if(messages.rows.length > 0){//Delete if messages exist
+        let messageChannel = await interaction.guild.channels.fetch(messages.rows[0].channel).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
+        console.log(messageChannel.name);
+        for(message of messages.rows){
+            messageChannel.messages.fetch(message.id)
+                .then(fetched=>fetched.delete().catch(err=>{})).catch(err=>{});
+        }
+    }
+    //TODO: Get nation
+    let nations = await dao.getNations(interaction.guildId).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
+    //Build response
+    let informationChannel = await interaction.guild.channels.fetch(informationChannelId).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
+    if(!informationChannel)
+        return 'The information channel couldn\'t be fetched, was it deleted?';
+    //let embeds = [];
+    let sentMessages = []
+    for(nation of nations.rows){
+        let discordRole = await interaction.guild.roles.resolve(nation.role);
+        let color=0;
+        if(discordRole)
+            color = discordRole.color;
+        let embed = new EmbedBuilder();
+        embed = embed.setColor(color)
+        embed = embed.setTitle(nation.name)
+        embed = embed.setDescription(nation.description)
+        embed = embed.setThumbnail(nation.thumbnail);
+        //embeds.push(embed);
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`nation_${nation.role}`)
+                .setLabel('Join nation')
+                .setStyle(ButtonStyle.Primary),
+        );
+        message = await informationChannel.send({embeds: [embed], components: [row] }).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
+        sentMessages.push(message.id);
+    };
+    tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
+    dao.replaceMessages(informationChannel.guildId, informationChannel.id, sentMessages, 'nation');
+    return 'Menu updated successfully';
+}
+
+/**
+ * Make a user join a nation (and leave other unique nations)
+ * @param {*} interaction
+ */
+async function joinNation(interaction){
+    let errors = [];
+    let res = 'Joined nation: ';
+    let clickedRole = interaction.customId.split('_')[1];
+    let roles = await interaction.member.roles;//.resolve();//fetch().catch(err=> errors.push(tools.errorContext(err,'at joinNation')));
+    let nations =  await dao.getNations(interaction.guild.id);
+    let clickedNation = nations.rows.find(nation => nation.role === clickedRole);
+    if(nations.rows.some(nation => nation.role === clickedRole)){
+        let same = false;
+        for(nation of nations.rows){
+            const role = roles.resolve(nation.role);
+            if(role){
+                same = same || (clickedRole === role.id);
+                if((nation.isunique && clickedNation.isunique) || same){
+                    roles.remove(nation.role).catch(err=> errors.push(tools.errorContext(err,'at joinNation')));
+                    if(same)
+                        break;
+                }
+            }
+        };
+        if(!same)
+            res += await interaction.member.roles.add(clickedRole);
+    }
+    tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
+    return res;
 }
 
 /**
@@ -370,6 +456,7 @@ async function unban(interaction){
 }
 
 module.exports = {
+    joinNation: joinNation,
     muteUnmute: muteUnmute,
     muteList: muteList,
     parrot: parrot,
@@ -379,6 +466,7 @@ module.exports = {
     register: register,
     toggleWhitelist: toggleWhitelist,
     unban: unban,
+    updateMenu: updateMenu,
     updateGuilds: updateGuilds,
     updateGuild: updateGuild,
     welcomeNewMember: welcomeNewMember
