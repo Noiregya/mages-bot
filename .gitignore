@@ -4,3 +4,6 @@ package-lock.json
 run.sh
 run.bat
 version_flag
+ssl/*
+logs/*
+client_certs.zip

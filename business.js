@@ -4,6 +4,7 @@ const { PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const personality = require('./personality');
 const interactions = require('./interactions');
 const { errors } = require('undici');
+const { replaceNations } = require('./dao');
 
 const OWNER = process.env.OWNER;
 
@@ -66,7 +67,7 @@ async function checkNewMember(member){
 
 //TODO: Test function
 async function raidProtection(member){
-    let res = await dao.isFrozen(member.guild).catch(function(err){console.log('guildMemberAdd '+err);});
+    let res = await dao.isFrozen(member.guild).catch(function(err){console.error('guildMemberAdd '+err);});
     let isFrozen = res.rows[0].is_frozen;
     if (isFrozen){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){console.error(err);});
@@ -110,11 +111,19 @@ function updateGuild(body){
             starboardChannel:body.starboard_channel || 0, 
             nbStarboard:body.nb_starboard || 0, 
             inactive:body.inactive && 1, frozen:body.frozen === 'true'};
-    let nations = [];
-    let deleted = [];
     if(!isValid)
         throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
-        
+    //Turn values into arrays if they aren't
+    if(!Array.isArray(body.role)){
+        body.role = [body.role];
+        body.name = [body.name];
+        body.description = [body.description];
+        body.thumbnail = [body.thumbnail];
+        body.deleted = [body.deleted];
+        body.isUnique = [body.isUnique];
+    }
+    let nations = [];
+    let deleted = [];
     if(body.role && body.name){
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
@@ -135,8 +144,9 @@ function updateGuild(body){
     
     if(isValid){
         dao.replaceGuild(body.guild, guildInfo);
-        if(nations.length>0)
+        if(nations.length>0){
             dao.replaceNations(body.guild, nations);
+        }
         if(deleted.length>0)
             dao.removeNations(body.guild, deleted);
     }else{
