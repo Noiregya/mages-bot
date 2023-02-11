@@ -204,7 +204,8 @@ async function updateMenu(interaction){
             color = discordRole.color;
         let embed = new EmbedBuilder()
         .setColor(color)
-        .setTitle(nation.name);
+        .setTitle(nation.name)
+        .setFooter({ text: nation.isunique ? 'Join only one' : 'Join as many as you want'});;
         if(nation.description)
             embed = embed.setDescription(nation.description);
         if(nation.thumbnail)
@@ -213,8 +214,8 @@ async function updateMenu(interaction){
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`nation_${nation.role}`)
-                .setLabel('Join nation')
-                .setStyle(ButtonStyle.Primary),
+                .setLabel('Join/leave nation')
+                .setStyle(nation.isunique ? ButtonStyle.Success : ButtonStyle.Primary),
         );
         message = await informationChannel.send({embeds: [embed], components: [row] }).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
         sentMessages.push(message.id);
