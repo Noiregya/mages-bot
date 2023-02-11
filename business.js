@@ -258,7 +258,8 @@ async function joinNation(interaction){
         if(!same)
             res += await interaction.member.roles.add(clickedRole);
     }
-    tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
+    if(errors.length > 0)
+        tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
     return res;
 }
 
