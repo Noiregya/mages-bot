@@ -237,8 +237,8 @@ client.on('guildMemberUpdate', function (oldMember, newMember) {
             if (!oldMember.permissions.has(PermissionsBitField.Flags.ManageMessages) &&
                 newMember.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
                 newMember.user.createDM().then(function (DM) {
-                    DM.send('You received a role that makes you eligible to notifications for ' + newMember.guild.name + '. To receive notifications, ' +
-                        'type /whitelist').catch(function (err) { console.error(err); });
+                    DM.send(`You received a role that makes you eligible to notifications for ${newMember.guild.name}. To receive notifications, 
+                        type /whitelist in the guild.`).catch(function (err) { console.error(err); });
                 }, function (err) { console.error(err); });
             }
         });

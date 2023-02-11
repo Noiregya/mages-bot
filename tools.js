@@ -236,7 +236,7 @@ async function findByName(manager, name){ // jshint ignore:line
 //Notify users with a specific permission
 async function permissionEventNotifier(permissionFlag, guild, name, currentEvent, parameter2){
     let res = 'Notification sent to:';
-    let admins = await dao.getWhiteListedAdmins(guild).catch(function(err){
+    let admins = await dao.getWhiteListedAdmins(guild.id).catch(function(err){
         console.error('Error getting whitelisted admins: '+err);
     });
     let ids = [];
@@ -264,12 +264,12 @@ async function permissionErrorNotifier(guild, permissionFlag, error){
     let res = 'Notification sent to:';
     let users = [];
     if(guild){
-        let admins = await dao.getWhiteListedAdmins(guild).catch(function(err){
+        let admins = await dao.getWhiteListedAdmins(guild.id).catch(function(err){
             console.error('Error getting whitelisted admins: '+err);
         });
         let ids = [];
         admins.rows.forEach(function(row){
-            ids.push(row.user_id);
+            ids.push(row.id);
         })
         let members = await guild.members.fetch({user: ids});
         members.forEach(function(member){
@@ -282,7 +282,7 @@ async function permissionErrorNotifier(guild, permissionFlag, error){
             }
         });
     }
-
+    console.log(users);
     for(user of users){
         let dm = await user.createDM().catch(err=>console.error('Cannot send DM '+err));
         dm.send(errorLog(error));

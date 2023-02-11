@@ -38,17 +38,20 @@ async function checkNewMember(member){
         dao.removePunishment(currentGuildId,currentMemberId);
         res = 'banned';
     }else if(member.user.tag.includes('discord.gg/')||member.user.tag.includes('discordapp.com/')||member.user.tag.includes('discord.com/')){
-        let res = await member.ban({ reason: 'Name contains an invite link' }).catch(function(err){
-            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'warn', 'Could detect potential raid but not ban user'+
-                                          '\n User: '+member.user.tag+'\nReason: '+err);});
-        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildBanAdd', member.user, member.guild);
+        let res = await member.ban({ reason: 'Name contains an invite link' }).then(
+            function(res){
+                tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildBanAdd', member.user, member.guild);
+            },function(err){
+            tools.permissionErrorNotifier(member.guild, PermissionsBitField.Flags.ManageMessages, 
+                errorContext(err, `Could detect potential raid but not ban user, User: ${member.user.tag}`))
+            });
         res = 'banned';
     } else if(punishment == 'muted'){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){
             console.error(err);
-            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'warn', 'User is marked as muted but I couldn\'t mute them automatically'+
-                                          '\n User: '+member.user.tag+'\nReason: '+err);
-        });Ò
+            tools.permissionErrorNotifier(member.guild, PermissionsBitField.Flags.ManageMessages, 
+                errorContext(err, `User is marked as muted but I couldn't mute them automatically, User: ${member.user.tag}`));
+        });
         member.roles.add(role,'Muted because on mute list.').catch(function(err){console.error('MUTE'+err);});
         res = 'muted';
     } else {
@@ -73,7 +76,7 @@ async function raidProtection(member){
         let role = await tools.findByName(member.guild.roles, 'Muted').catch(function(err){console.error(err);});
         res = member.roles.add(role).catch(function(err){
             let message = 'Despite the raid, a mute role could not be given to user '+member.user.tag+' '+err;
-            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'warn', message);//TODO: Client unavailable
+            tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'warn', message);
             console.error(message);
             return message;
         });
@@ -84,7 +87,7 @@ async function raidProtection(member){
         }, function(err){
             console.error(err);
         });
-        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, client, 'userFrozen', member);
+        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'userFrozen', member);
     }
 }
 
@@ -179,7 +182,7 @@ async function updateMenu(interaction){
     if(channels && channels.rows && channels.rows.length > 0)
         informationChannelId = channels.rows[0].information;
     if(!informationChannelId || informationChannelId.length<17)
-        return 'Please select a channel in the configuration page to use this command.';
+        return 'Please select a channel in the configuration page to use this command';
     //Get existing message
     let messages = await dao.getMessages(interaction.guildId, 'nation');
     if(messages.rows.length > 0){//Delete if messages exist
@@ -191,11 +194,12 @@ async function updateMenu(interaction){
     }
     //TODO: Get nation
     let nations = await dao.getNations(interaction.guildId).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
+    if(nations.rows.length === 0)
+        return 'Please add a nation in the configuration page to use this command';
     //Build response
     let informationChannel = await interaction.guild.channels.fetch(informationChannelId).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
     if(!informationChannel)
         return 'The information channel couldn\'t be fetched, was it deleted?';
-    //let embeds = [];
     let sentMessages = []
     for(nation of nations.rows){
         let discordRole = await interaction.guild.roles.resolve(nation.role);
@@ -210,7 +214,6 @@ async function updateMenu(interaction){
             embed = embed.setDescription(nation.description);
         if(nation.thumbnail)
             embed = embed.setThumbnail(nation.thumbnail);
-        //embeds.push(embed);
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`nation_${nation.role}`)
@@ -220,8 +223,11 @@ async function updateMenu(interaction){
         message = await informationChannel.send({embeds: [embed], components: [row] }).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
         sentMessages.push(message.id);
     };
-    tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
-    dao.replaceMessages(informationChannel.guildId, informationChannel.id, sentMessages, 'nation');
+    //tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
+    if(sentMessages.length>0)
+        dao.replaceMessages(informationChannel.guildId, informationChannel.id, sentMessages, 'nation');
+    if(errors.length>0)
+        return tools.errorLog(errors);
     return 'Menu updated successfully';
 }
 
@@ -388,18 +394,17 @@ async function muteList(interaction){
 async function toggleWhitelist(member){
     let message;
     if(member){
-        let whitelistedRows = await dao.getWhiteListedAdmins(member.guild);
-        let whitelisted = whitelistedRows && whitelistedRows.rows.find(row => row.user == member.user.id);
-
+        let whitelistedRows = await dao.getWhiteListedAdmins(member.guild.id);
+        let whitelisted = whitelistedRows && whitelistedRows.rows.find(row => row.id == member.user.id);
         if(whitelisted){
-            await dao.blacklistAdmin(member.user, member.guild).catch(function(err){
+            await dao.blacklistAdmin(member.user.id, member.guild.id).catch(function(err){
                 message = 'Error: '+err;
                 return message;
             });
             message = 'You will not receive generic notifications anymore.';
 
         }else if(member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
-            await dao.whitelistAdmin(member.user, member.guild).catch(function(err){
+            await dao.whitelistAdmin(member.user.id, member.guild.id, member.user.tag).catch(function(err){
                 message = 'Error: '+err;
                 return message;
             });
@@ -408,7 +413,7 @@ async function toggleWhitelist(member){
             message = 'You are not allowed to use this command here.';
         }
     }else{
-        message = 'You need to be in a server to perform this command.';
+        message = 'You need to be in a guild to perform this command.';
     }
     return message;
 }

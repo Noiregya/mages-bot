@@ -448,16 +448,16 @@ function getLocalPowerLevels(guild) {
 
 function blacklistAdmin(user, guild) {
     let query = {
-        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.user=$1 AND admin_whitelist.guild=$2;',
-        values: [user.id, guild.id]
+        text: 'DELETE FROM admin_whitelist WHERE admin_whitelist.id=$1 AND admin_whitelist.guild=$2;',
+        values: [user, guild]
     };
     return pool.query(query).catch(function (err) { console.error('blacklistAdmin() ' + err); });
 }
 
-function whitelistAdmin(user, guild) {
+function whitelistAdmin(user, guild, name) {
     let query = {
-        text: 'INSERT INTO admin_whitelist(user, guild, username) values($1 ,$2 ,$3);',
-        values: [user.id, guild.id, user.tag]
+        text: 'INSERT INTO admin_whitelist(id, guild, username) values($1 ,$2 ,$3);',
+        values: [user, guild, name]
     };
     return pool.query(query).catch(function (err) { console.error('whitelistAdmin() ' + err); });
 }
@@ -465,9 +465,9 @@ function whitelistAdmin(user, guild) {
 function getWhiteListedAdmins(guild) {
     let query = {
         text: 'SELECT * FROM admin_whitelist WHERE admin_whitelist.guild=$1;',
-        values: [guild.id]
+        values: [guild]
     };
-    return pool.query(query).then(function (res) { return res; }, function (err) { console.error('getWhiteListedAdmins() ' + err); });
+    return pool.query(query).catch(function (err) { console.error('getWhiteListedAdmins() ' + err); });
 }
 
 function getFriendliness(user) {
