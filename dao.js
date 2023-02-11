@@ -77,8 +77,17 @@ function getGuildProperties(guildIds){
             +'WHERE guilds.id = ANY($1)',
         values: [guildIds]
     };
+    return pool.query(query).catch(function (err) {
+        console.error('getGuildProperties() ' + err); });
+}
+
+function getChannels(guildId){
+    var query = {
+        text:'SELECT welcome, information, starboard '
+            +'FROM channels WHERE guild = $1',
+        values: [guildId]
+    };
     return pool.query(query).catch(function (err) { 
-        console.error(err);
         console.error('getGuildProperties() ' + err); });
 }
 
@@ -498,6 +507,42 @@ function isFrozen(guild) {
     return getField('guilds', 'id', guild.id, 'is_frozen');
 }
 
+/**
+ * Get parametrized messages in a guild
+ * @param {*} guild 
+ * @returns 
+ */
+function getMessages(guild, type){
+    var query = {
+        text: 'SELECT * from messages WHERE messages.guild = $1 AND messages.type = $2',
+        values: [guild, type]
+    };
+    return pool.query(query).catch(function (err) { console.error('getMessages() ' + err); });
+}
+
+/**
+ * Replace all messages of a type in a guild with a new list
+ * @param {*} guild id of the guild
+ * @param {*} channel id of the channel
+ * @param {*} messages array of message ids
+ * @param {*} type type of the message(s)
+ * @returns 
+ */
+async function replaceMessages(guild, channel, messages, type){
+    var query = {
+        text: 'DELETE FROM messages WHERE messages.guild = $1 AND messages.channel = $2 AND messages.type = $3',
+        values: [guild, channel, type]
+    };
+    await pool.query(query).catch(function (err) { console.error('replaceMessages() ' + err); });
+    messages.forEach(message=>{
+        query = {
+            text: 'INSERT INTO messages VALUES($1,$2,$3,$4)',
+            values: [guild, channel, message, type]
+        };
+        return pool.query(query).catch(function (err) { console.error('replaceMessages() ' + err); });
+    });
+}
+
 module.exports = {
     pool: pool,
     addBan: addBan,
@@ -510,6 +555,7 @@ module.exports = {
     getFriendliness: getFriendliness,
     getInfoChannel: getInfoChannel,
     getLocalPowerLevels: getLocalPowerLevels,
+    getMessages: getMessages,
     getMutes: getMutes,
     getNations: getNations,
     getPunishment: getPunishment,
@@ -524,8 +570,10 @@ module.exports = {
     removeGuild: removeGuild,
     getGuilds: getGuilds,
     getGuildProperties: getGuildProperties,
+    getChannels: getChannels,
     removeNation: removeNation,
     replaceGuild: replaceGuild,
+    replaceMessages: replaceMessages,
     replaceNations: replaceNations,
     removeNations: removeNations,
     removePunishment: removePunishment,

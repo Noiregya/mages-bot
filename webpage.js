@@ -7,6 +7,7 @@ const { body, validationResult } = require("express-validator");
 const { request } = require('undici');
 const dao = require('./dao');
 const business = require('./business');
+const {errorContext, errorLog} = require('./tools');
 const { PermissionsBitField } = require('discord.js');
 const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
@@ -75,19 +76,6 @@ function isAuthenticated(req, res, next) {
   else next('route');
 }
 
-//Unified method of adding business information to an error object before throwing it
-function errorContext(err, message, secret) {
-  if (!err.business) err.business = []; //Create array if it doesn't exist
-  if (!message) message = 'Failed to provide message element to the errorContext function';//Error if called improperly
-  let rank = err.business.push(message) - 1; //Adds the message to the array and returns the index of that element
-  //Information useful for debugging but that we don't want to show the end user
-  if (secret) {
-    if (!err.secret) err.secret = [];
-    err.secret[rank] = secret; //Secret placed at the same index as the business message
-  }
-  return err;
-}
-
 function errorDisplay(errs) {
   let string;
   if (!Array.isArray(errs));
@@ -103,24 +91,6 @@ function errorDisplay(errs) {
     string += '</table>';
   });
   return string;
-}
-
-function errorLog(errs) {
-  let string;
-  if (!Array.isArray(errs))
-    errs = [errs];
-  errs.forEach(err => {
-    string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
-    if (err.business) {
-      for (i = 0; i < err.business.length; i++) {
-        string += err.name + ' : ' + err.business[i];
-        if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
-        string += '\n'
-      }
-    }
-    console.error(string);
-    console.error(err);
-  });
 }
 
 /**
@@ -294,7 +264,7 @@ async function generateAdminForms(userGuilds, salt) {
         let nation = guildWithChannel.properties.nations[i];
         let role = guildWithChannel.roles.get(nation.role);
         let color = role ? role.color : 0x444444 ;
-        res += generateNationHtml(nation.name, nation.description, nation.thumbnail, color, guildWithChannel.roles, nation.role, nation.isUnique);
+        res += generateNationHtml(nation.name, nation.description, nation.thumbnail, color, guildWithChannel.roles, nation.role, nation.isunique);
       }
       /*guildWithChannel.properties.nations.forEach(function(nation){
         let color = guildWithChannel.roles.get(nation.role).color;
