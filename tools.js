@@ -240,9 +240,9 @@ async function permissionEventNotifier(permissionFlag, guild, name, currentEvent
         console.error('Error getting whitelisted admins: '+err);
     });
     let ids = [];
-    admins.rows.forEach(function(row){
-        ids.push(row.user_id);
-    })
+    for(admin of admins.rows){
+        ids.push(admin.id);
+    }
     let members = await guild.members.fetch({user: ids});
     members.forEach(function(member){
         if(member.permissions.has(permissionFlag)){

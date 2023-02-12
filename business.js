@@ -356,6 +356,8 @@ async function muteUnmute(client, interaction){
             message = 'No role named \'Muted\' have been found on this server';
             return message;
         });
+        if (!role)
+            return 'A mute role have not been defined for this guild. Set one in the admin page.';
         if (target._roles.includes(role.id)){
             //Unmute user
             await target.roles.remove(role,"Unmuted by "+interaction.user.username).then(function(res){
