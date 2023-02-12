@@ -9,6 +9,7 @@ const dao = require('./dao');
 const business = require('./business');
 const {errorContext, errorLog} = require('./tools');
 const { PermissionsBitField } = require('discord.js');
+const { response } = require('express');
 const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
@@ -23,7 +24,6 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
-
 
 let client;
 function init(discordClient) {
@@ -564,6 +564,7 @@ async function reloadDiscordData(user) {
 
 //Page for authentified user
 app.get('/', isAuthenticated, async (req, response, next) => {
+
   //TODO: Reload discord token 
   let user = req.session.user;
   let accountInfo = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
@@ -581,8 +582,14 @@ app.get('/', isAuthenticated, async (req, response, next) => {
       return next(errorContext(fileReadError, 'Could not read file ' + index));
     }
     var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, accountInfo)
-      .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
-      .replace(/{ADMIN_FORMS}/g, adminForms);
+      .replace(/{LOAD_PAGE}/g, req.session.page ? `<script>
+        showPage("${req.session.page}");
+        if(${req.session.currentGuild})
+          toggleGuild("${req.session.currentGuild}");
+        </script>` : '')
+      .replace(/{ADMIN_FORMS}/g, adminForms)
+      .replace(/{TOAST}/g, req.session.wasUpdated ? `<div id="toast">Guild ${req.session.wasUpdated} updated</div>` : '');
+      req.session.wasUpdated = undefined;
       req.session.save(function(err){
         if (err) return next(err);
         return response.send(result);
@@ -607,7 +614,8 @@ app.get('/', async (req, response, next) => {
       }
       var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state)))
         .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
-        .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot');
+        .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot')
+        .replace(/{TOAST}/g, '');
       return response.send(result);
     });
   });
@@ -626,12 +634,19 @@ app.post('/', async (req, res, next) => {
   //Check that the form was created and sent by the same person
   if(req.body.salt === req.session.salt){
     try{
-      business.updateGuild(req.body);
+      await business.updateGuild(req.body);
     }catch(error){
       return next(errorContext(error, ' at app.post(/)'));
     }
   }
+  req.session.wasUpdated = guild.name;
+  req.session.currentGuild = guild.id;
+  req.session.save(function (err) {
+    if (err) {
+      return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
+    }
   res.redirect('/');//TODO: indicate if update have been made
+  });
 });
 
 //Formatted error display
@@ -640,7 +655,10 @@ app.use((error, req, res, next) => {
   let data = fs.readFileSync(root + index, 'utf8');
   if (!data)
     return next(errorContext(fileReadError, 'Unable to find index file'));
-  result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>').replace(/{AUTHENTIFICATION_BLOCK}/g, '').replace(/{LOAD_PAGE}/g, '');
+  result = data.replace(/{ERROR_BLOCK}/g, errorDisplay(error) + '\n<script>showError();</script>')
+  .replace(/{AUTHENTIFICATION_BLOCK}/g, '')
+  .replace(/{LOAD_PAGE}/g, '')
+  .replace(/{TOAST}/g, '');
   if(!res.headersSent){
     errorLog(error);
     return res.status(500).send(result);

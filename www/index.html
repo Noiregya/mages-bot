@@ -22,7 +22,14 @@
 </style>
 
 <body class="mages-bg">
+  {TOAST}
   <script>
+    // Get the snackbar DIV
+    var toast = document.getElementById("toast");
+    if(toast){
+      toast.className = "show";
+      setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 5000);
+    } 
     var openDialog = function(uri, name, options, closeCallback) {
       var win = window.open(uri, name, options);
       var interval = window.setInterval(function() {
@@ -46,7 +53,8 @@
     }
 
     function toggleGuild(guildId) {
-      console.log(guildId);
+      if(!guildId)
+        return;
       tabcontent = document.getElementsByClassName("oneguild");
       //Hide all the guilds
       for (i = 0; i < tabcontent.length; i++) {

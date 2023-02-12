@@ -51,7 +51,7 @@ function updateGuild(id, name) {
         text: 'INSERT INTO guilds(id, name) VALUES($1, $2) ON CONFLICT(id) DO UPDATE SET name = EXCLUDED.name',
         values: [id, name]
     };
-    pool.query(query).catch(function (err) { console.error('registerGuild() ' + err); });
+    pool.query(query).catch(function (err) { console.error('updateGuild() ' + err); });
 }
 
 function removeGuild(id) {
@@ -64,7 +64,7 @@ function removeGuild(id) {
 
 function getGuilds() {
     var query = {
-        text: 'SELECT * from guilds'
+        text: 'SELECT id, name from guilds'
     };
     return pool.query(query).catch(function (err) { console.error('getGuilds() ' + err); });
 }

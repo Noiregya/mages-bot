@@ -106,7 +106,6 @@ client.on('ready', function () {
 
     console.log('Logged in as ' + client.user.tag + '!');
     client.user.setActivity(".P HELP", { type: 'LISTENING' });
-    //TODO: Update guild list in DB
     client.guilds.fetch().then(function (guilds) {
         if (guilds.available)
             guilds = new Array(guilds);

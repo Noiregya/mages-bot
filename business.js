@@ -290,6 +290,7 @@ async function pruneGuilds(joinedGuilds, toDelete){
     else
         result = 'The following guilds are unused: \n';
     let knownGuilds = await dao.getGuilds();
+    let any = false;
     knownGuilds.rows.forEach(function(dbGuild){
         let exists;
         joinedGuilds.forEach(function(joinedGuild){
@@ -298,11 +299,12 @@ async function pruneGuilds(joinedGuilds, toDelete){
         });
         if(!exists){
             result += `id: ${dbGuild.id}, name: ${dbGuild.name}\n`;
+            any = true;
             if(toDelete)
                 dao.removeGuild(dbGuild.id);
         }
     });
-    return result;
+    return any ? result : 'All current guilds are being used';
 }
 
 //Welcome a new member, add roles if setup
