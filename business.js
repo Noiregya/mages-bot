@@ -361,6 +361,7 @@ async function muteUnmute(client, interaction){
         if (target._roles.includes(role.id)){
             //Unmute user
             await target.roles.remove(role,"Unmuted by "+interaction.user.username).then(function(res){
+                dao.removePunishment(guild.id, target.id);
                 message = 'User unmuted';
             },function(err){
                 console.error('MUTE '+err);
@@ -370,6 +371,7 @@ async function muteUnmute(client, interaction){
         } else {
             //Mute user
             await target.roles.add(role,"Muted by "+interaction.user.username).then(function(res){
+                dao.addMute(guild.id, target.id);
                 message = 'User muted';
             },function(err){
                 console.error('MUTE '+err);
@@ -386,10 +388,12 @@ async function muteUnmute(client, interaction){
 //Displays a list of muted users
 async function muteList(interaction){
     let mutedUsers = await dao.getMutes(interaction.guildId);
+    if(mutedUsers.rows.length < 1)
+        return 'No user muted by the bot in this guild';
     let prettyList = '';
-    mutedUsers.rows.forEach(function(row){
+    for(row of mutedUsers.rows){
         prettyList += '<@' + row.id + '>\n';
-    });
+    }
     return prettyList;
 }
 

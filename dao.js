@@ -137,6 +137,7 @@ function addMute(guildId, id) {
         console.error('dao.addMute ' + err);
     });
 }
+
 function addBan(guildId, id) {
     let query = {
         text: 'INSERT INTO punishments (guild, id, punishment) ' +
@@ -146,7 +147,7 @@ function addBan(guildId, id) {
         values: [guildId, id, "banned"]
     };
     return pool.query(query).catch(function (err) {
-        console.error('dao.addMute ' + err);
+        console.error('dao.addBan ' + err);
     });
 }
 
