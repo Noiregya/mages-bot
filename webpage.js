@@ -155,7 +155,7 @@ function generateNationHtml(name, description, thumbnail, color, roles, currentR
             });
           }
           res += `</select></div>
-          <div class="inline"><div>Is a nation?</div>${generateBetterCheckbox('isUnique', isUnique)}</div>
+          <div class="inline"><div>Exclusive</div>${generateBetterCheckbox('isUnique', isUnique)}</div>
           <a class="mB-button" onclick="deleteNation(event.target)">Delete nation</a>
           <input type="hidden" class="mB-input" name="deleted" value="false">
           </div><hr>`;
@@ -255,7 +255,7 @@ async function generateAdminForms(userGuilds, salt) {
       res += `</select></div>
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
-              ${generateBetterCheckbox('frozen', guildWithChannel.properties.is_frozen)}
+              <div class="inline"><div>Mute all users on join</div>${generateBetterCheckbox('frozen', guildWithChannel.properties.is_frozen)}</div>
               </div><hr>
               <a class="mB-button" onclick="addNation(event.target)">Create a new nation</a>`;
               //<div class="inline"><div>Guild is frozen</div><input class="mB-input" type="checkbox" name="frozen" ${guildWithChannel.properties.is_frozen ? 'checked' : ''}></div>

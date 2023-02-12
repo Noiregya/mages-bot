@@ -27,6 +27,7 @@ const business = require('./business');
 const personality = require('./personality');
 const interactions = require('./interactions');
 const webpage = require('./webpage.js');
+const { errorContext } = require('./tools');
 const intervalStarted = false;
 const dayInMS = 86400000;
 
@@ -239,7 +240,7 @@ client.on('guildMemberUpdate', function (oldMember, newMember) {
                 newMember.user.createDM().then(function (DM) {
                     DM.send(`You received a role that makes you eligible to notifications for ${newMember.guild.name}. To receive notifications, 
                         type /whitelist in the guild.`).catch(function (err) { console.error(err); });
-                }, function (err) { console.error(err); });
+                }, function (err) { tools.errorLog(tools.errorContext(err, ' at event guildMemberUpdate')) });
             }
         });
     }
@@ -247,32 +248,26 @@ client.on('guildMemberUpdate', function (oldMember, newMember) {
 
 client.on('guildBanAdd', function (guildBan) {
     //Notify moderators
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild).then(function (res) {
-        console.debug(res);
-    });
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanAdd', guildBan.user, guildBan.guild)
+        .catch(err=>{ tools.errorLog(tools.errorContext(err, ' at event guildBanAdd')) });
 });
 
 client.on('guildBanRemove', function (guildBan) {
     //Notify moderators
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanRemove', guildBan.user, guildBan.guild).then(function (res) {
-        console.debug(res);
-    });
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, guildBan.guild, 'guildBanRemove', guildBan.user, guildBan.guild)
+        .catch(err=>{ tools.errorLog(tools.errorContext(err, ' at event guildBanRemove')) });
 });
 
 client.on('guildMemberAdd', function (member) {
     business.welcomeNewMember(member);
-    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberAdd', member).then(function (res) {
-        console.debug(res);
-    });
+    tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberAdd', member)
+        .catch(err=>{ tools.errorLog(tools.errorContext(err, ' at event guildMemberAdd')) });
 });
 
 client.on('guildMemberRemove', function (member) {
     if (member.user.id != client.user.id) {
-        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberRemove', member).then(function (res) {
-            console.debug(res);
-        });
-    } else {
-        console.error('I cannot notify my own leave');
+        tools.permissionEventNotifier(PermissionsBitField.Flags.ManageMessages, member.guild, 'guildMemberRemove', member)
+            .catch(err=>{ tools.errorLog(tools.errorContext(err, ' at event guildMemberRemove')) });
     }
 });
 

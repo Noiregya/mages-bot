@@ -282,7 +282,6 @@ async function permissionErrorNotifier(guild, permissionFlag, error){
             }
         });
     }
-    console.log(users);
     for(user of users){
         let dm = await user.createDM().catch(err=>console.error('Cannot send DM '+err));
         dm.send(errorLog(error));
@@ -451,7 +450,7 @@ async function convertMessageToEmbed(msg, prefix){ // jshint ignore:line
         });*/
         color = member.displayColor;
     }else{
-        console.log("Member "+message.author.tag+" seems to have left.");
+        console.error("Member "+message.author.tag+" seems to have left.");
     }
 
     let content = stripLinks(message.content);
@@ -989,7 +988,6 @@ function removeRoleFromInactive(guild){
     console.log('Removing inactives from '+guild.name);
     getInactiveMembers(guild,30).then(function(inactives){
         dao.getActiveRoles(guild, false).then(function(roleRes){
-
             inactives.forEach(function(inactive){
                 console.log(roleRes);
                 inactive.roles.remove(roleRes).then(
