@@ -192,7 +192,7 @@ async function updateMenu(interaction){
                 .then(fetched=>fetched.delete().catch(err=>{})).catch(err=>{});
         }
     }
-    //TODO: Get nation
+    //Get nations
     let nations = await dao.getNations(interaction.guildId).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
     if(nations.rows.length === 0)
         return 'Please add a nation in the configuration page to use this command';

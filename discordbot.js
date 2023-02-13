@@ -270,7 +270,6 @@ client.on('guildMemberRemove', function (member) {
     }
 });
 
-//TODO: Join nations message with buttons
 //TODO: MessageReactionAddEvent
 /* 
 client.on('messageReactionAdd', function(messageReaction, user){
@@ -401,11 +400,8 @@ client.on('messageUpdate', function(oldMessage, newMessage){
 });
 */
 
-//TODO: List muted users
 //TODO: Create polls
 //TODO: Auto administration
-//TODO: New permission management for guild admins
-//TODO: Web interface setup
 //TODO: Starboard
 //TODO: Permissions
 //TODO: Welcome channel

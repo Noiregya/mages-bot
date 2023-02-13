@@ -13,9 +13,8 @@ const { response } = require('express');
 const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
-const authUrl = process.env.AUTH_URL;
 const cookieSecret = process.env.COOKIE_SECRET;
-const inviteLink = process.env.INVITE_LINK;
+const inviteLink = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=1237219404868&scope=bot`;
 
 const root = __dirname + '/www/';
 const index = 'index.html';
@@ -24,6 +23,10 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
+
+function getAuthUrl(localUrl){
+  return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(localUrl)}login&response_type=code&scope=identify%20guilds`
+}
 
 let client;
 function init(discordClient) {
@@ -372,7 +375,6 @@ app.get('/login', function (req, res, next) {
       req.session.user = user;//Store the user in the session
       //Keep the right tab after redirection
       req.session.page = 'settings';
-      //Todo: Save session in the database here
       // save the session to the store before redirection to ensure page
       // load does not happen before session is saved
       req.session.save(function (err) {
@@ -425,7 +427,7 @@ app.get('/logout', function (req, res, next) {
   });
 });
 
-function authentificationBlock(state) {
+function authentificationBlock(state, authUrl) {
   return `<div id="info">Please log in before you continue</div>\n
           <a id="login" style="display: block;" href="${authUrl}&state=${state}">Identify Yourself</a>`;
 }
@@ -564,8 +566,6 @@ async function reloadDiscordData(user) {
 
 //Page for authentified user
 app.get('/', isAuthenticated, async (req, response, next) => {
-
-  //TODO: Reload discord token 
   let user = req.session.user;
   let accountInfo = 'Welcome ' + user.username + '#' + user.discriminator + '<div><a href="/logout">log out</a></div>\n';
   let generateAdminFormsError;
@@ -597,9 +597,6 @@ app.get('/', isAuthenticated, async (req, response, next) => {
   });
 });
 
-//TODO: update discord user/regenerate token to account for added guilds in the redirection
-//Make a new math for that
-
 //Page for unauthentificated user
 app.get('/', async (req, response, next) => {
   req.session.state = generateRandomString();
@@ -612,7 +609,8 @@ app.get('/', async (req, response, next) => {
       if (err) {
         return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
       }
-      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state)))
+      var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+      var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state), getAuthUrl(fullUrl)))
         .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
         .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot')
         .replace(/{TOAST}/g, '');
@@ -645,7 +643,7 @@ app.post('/', async (req, res, next) => {
     if (err) {
       return next(errorContext(err, 'Could not save the session in the store')); //Return is used to stop execution and jump straight to the next error function
     }
-  res.redirect('/');//TODO: indicate if update have been made
+  res.redirect('/');
   });
 });
 

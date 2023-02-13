@@ -2,7 +2,6 @@ const { Pool } = require('pg');
 const fs = require('fs');
 
 const ssl_directory = process.env.SSL_DIRECTORY;
-//TODO: Improve error management
 
 const config = {
     connectionString: process.env.DATABASE_STRING,

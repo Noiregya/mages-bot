@@ -8,13 +8,11 @@ Set the environment variable:
 * TOKEN: The token of the bot
 * DATABASE_STRING: Connection string for the postgresql database
 * SSL_DIRECTORY: Directory where MAGES. SSL certificates are stored
-* INVITE_LINK: Provide your bot invite link for the web interface
 * WEBPORT: Port for the local webserver (default 80)
 * oAuth2
  * APPLICATION_ID: ID of your discord app for 
  * APPLICATION_SECRET: Secret of your discord app for 
  * PUBLIC_KEY: Public key of your discord app for
- * AUTH_URL: oAuth2 URL to authorize the app, scopes identify and guilds
 * COOKIE_SECRET: Secret string to authentify cookies
 Run the command `npm run start`
 
