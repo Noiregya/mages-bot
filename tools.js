@@ -91,21 +91,21 @@ const things = [
 ];
 
 const statuses = [
-    'Polishing staff',
-    'Experimenting on my assistant',
-    'Looking for a new assistant',
-    'Learning latin',
-    'Brewing Doc P',
-    'Designing a new hat',
-    'Hacking into the Organization\'s mainframe',
-    'Out for a 5pb. concert',
-    'Tuning wireless electric guitar',
-    'Microwaving bananas',
-    'Time traveling fried chicken',
-    'Increasing reality',
-    'Developping mecha fighters',
-    'Sabotaging killachines',
-    'Anything for science'
+    { name: 'with my staff', type: 0 },
+    { name: 'hacking into the Organization\'s mainframe', type: 1 },
+    { name: 'experimenting on assistant', type: 1 },
+    { name: 'for a new assistant', type: 3 },
+    { name: 'latin lessons', type: 2 },
+    { name: 'Doc P. brewing tutorials', type: 3 },
+    { name: 'designing a new hat', type: 1 },
+    { name: 'a 5pb. concert', type: 2 },
+    { name: 'and tuning wireless electric guitar', type: 2 },
+    { name: 'bananas being microwaved', type: 3 },
+    { name: 'fried chicken time traveling', type: 3 },
+    { name: 'reality increaser', type: 0 },
+    { name: 'homemade mecha fighters game', type: 0 },
+    { name: 'with killachines', type: 0 },
+    { name: 'with scientific magic', type: 0 }
 ];
 
 const owos= [
@@ -545,56 +545,6 @@ async function getMemberNation(member){ // jshint ignore:line
     }
 }
 
-function updateInfoMessage(channel, member, dao){
-    deleteOneInAChannel(channel, member);
-    let guild = channel.guild;
-    channel.send('\`\`\`React to the below messages to join a nation and secret rooms!\`\`\`').catch(function(err){console.error('updateInfoMessage() '+err);});
-    dao.getNations(guild.id).then(function(nations){
-        nations.rows.forEach(function(currentNation){
-            let embedNation = {
-                embed: {
-                    title:currentNation.name,
-                    description:currentNation.description,
-                    color:currentNation.color,
-                    url:website,
-                    thumbnail: {
-                        url: currentNation.thumbnail
-                    }	}	};
-            channel.send(embedNation).then(function(message){
-                message.react('👍').then(function(res){
-                }, function(err){
-                    console.error("Could not react "+err);
-                });
-                let role = guild.roles.resolve(currentNation.role);
-                dao.updateMessageId(role, message.id);
-            }, function(err){
-                console.error("Couldn't send message "+err);
-            });
-        });
-        //Shares
-
-        makeShareMessage(guild).then(function(shareMessage){
-            channel.send(shareMessage).then(function(message){
-                dao.updateShareMessage(guild, message.id);
-            },function(err){console.error('makeShareMessage() '+err);});
-        });
-
-        //Invite link
-        channel.guild.fetchInvites().then(function(invites){
-            var finalInvite=null;
-            invites.array().forEach(function(invite){
-                if(!invite.temporary && invite.maxUses=== 0){
-                    finalInvite = invite;
-                }
-            });
-            if(finalInvite!== null){
-                channel.send('Feel free to invite your friends using this link!\n'+finalInvite.url).catch(function(err){console.error('updateInfoMessage() '+err);});
-            }
-        }, function(err){console.error('fetchInvites() '+err);});
-    },function(err){
-        console.error("Could not get nations "+err);
-    });
-}
 function updateShareMessage(guild){
     makeShareMessage(guild).then(function(shareMessage){
         dao.getInfoChannel(guild).then(function(infoChannelId){
@@ -1119,9 +1069,7 @@ module.exports = {
     sleep: sleep,
     stripLinks: stripLinks,
     submitTimedEvent: submitTimedEvent,
-    updateInfoMessage: updateInfoMessage,
     updateShareMessage: updateShareMessage,
-    website: website,
     resolveChannelString:resolveChannelString,
     permissionErrorNotifier: permissionErrorNotifier,
     errorContext: errorContext,

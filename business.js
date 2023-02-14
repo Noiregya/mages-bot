@@ -4,7 +4,6 @@ const { PermissionsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const personality = require('./personality');
 const interactions = require('./interactions');
 const { errors } = require('undici');
-const { replaceNations } = require('./dao');
 
 const OWNER = process.env.OWNER;
 

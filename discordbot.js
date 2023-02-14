@@ -1,3 +1,14 @@
+//TODO: Create polls
+//TODO: Check for inactive users
+//TODO: Cleanup unused code
+//TODO: Auto administration
+//TODO: Starboard
+//TODO: Welcome channel
+//TODO: Pin channel
+//TODO: SECURE COMMAND equivalent: copies pinned messages to a pin channel
+//TODO: Activity monitor: Keep track of active users to prune inactive ones
+//TODO: RELOAD COMMAND EQUIVALENT: Send necessary messages in the welcome channel
+//TODO: FREEZE/UNFREEZE server: Mutes all new users in case of a raid
 const { Client, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 const fs = require('fs');
 
@@ -96,17 +107,16 @@ client.on('ready', function () {
         ownerUser = application.owner;
         console.log('Welcome to MAGES.' + '\nOwner: ' + ownerUser.tag);
         ownerUser.createDM().then(DMchannel => {
-            //TODO: Send Crash report by message
             DMchannel.send("I had to restart, remember to check the logs if you don't know why!").catch(err => {
                 console.error(err);
-            });//TODO: Give command examples
+            });
         }), err => { console.error(err) };
     }).catch(err => { console.error(err) });
 
 
     console.log('Logged in as ' + client.user.tag + '!');
     
-    client.user.setPresence({ activities: [{ name: tools.randomFromArray(tools.statuses) }], status: 'online' });
+    client.user.setPresence({ activities: [tools.randomFromArray(tools.statuses)], status: 'online' });
 
     //client.user.setActivity(".P HELP", { type: 'LISTENING' });
     client.guilds.fetch().then(function (guilds) {
@@ -118,19 +128,6 @@ client.on('ready', function () {
             console.log('Available guild ' + guild.name);
         });
     });
-    //TODO cache messages to fix starboard?
-    /*.cache.array().forEach(function(guild){//cache channel messages to allow reaction/logs
-        dao.getInfoChannel(guild).then(function(infoChannel){
-            let channel = guild.channels.cache.get(infoChannel);
-            if(channel!== null){
-                channel.messages.fetch().then(
-                    function(messages){
-                        console.log('Fetched '+messages.size+' messages from '+guild.name);
-                    }, function(err){console.error(err);});
-            }
-        }, function(err){console.error("Caching "+err);});
-    });*/
-    //TODO: Periodic check for share messages
 
     const updateShares = async function(client){
         console.log('Updating shares:');
@@ -409,18 +406,6 @@ client.on('messageUpdate', function(oldMessage, newMessage){
     }
 });
 */
-
-//TODO: Create polls
-//TODO: Auto administration
-//TODO: Starboard
-//TODO: Permissions
-//TODO: Welcome channel
-//TODO: Nations
-//TODO: Pin channel
-//TODO: SECURE COMMAND equivalent: copies pinned messages to a pin channel
-//TODO: Activity monitor: Keep track of active users to prune inactive ones
-//TODO: RELOAD COMMAND EQUIVALENT: Send necessary messages in the welcome channel
-//TODO: FREEZE/UNFREEZE server: Mutes all new users in case of a raid
 //Everyone's messages watch
 /*
 client.on('message', function(msg){
