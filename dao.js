@@ -529,6 +529,8 @@ function getMessages(guild, type){
  * @returns 
  */
 async function replaceMessages(guild, channel, messages, type){
+    if(!Array.isArray(messages))
+        messages = [messages];
     var query = {
         text: 'DELETE FROM messages WHERE messages.guild = $1 AND messages.channel = $2 AND messages.type = $3',
         values: [guild, channel, type]

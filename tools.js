@@ -90,6 +90,24 @@ const things = [
     "Are you from this dimension? I don't feel any magic coming from you."
 ];
 
+const statuses = [
+    'Polishing staff',
+    'Experimenting on my assistant',
+    'Looking for a new assistant',
+    'Learning latin',
+    'Brewing Doc P',
+    'Designing a new hat',
+    'Hacking into the Organization\'s mainframe',
+    'Out for a 5pb. concert',
+    'Tuning wireless electric guitar',
+    'Microwaving bananas',
+    'Time traveling fried chicken',
+    'Increasing reality',
+    'Developping mecha fighters',
+    'Sabotaging killachines',
+    'Anything for science'
+];
+
 const owos= [
     'This dimension appears to not have many intelligent beings...',
     'I don\'t know why, but those symbols make me wince.',
@@ -344,6 +362,10 @@ async function getUsersPower(members, guild){ // jshint ignore:line
         }
     }
     return membersWithLevel;
+}
+
+function randomFromArray(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
 }
 
 function randomWelcome(){
@@ -1080,6 +1102,7 @@ module.exports = {
     helpAssign: helpAssign,
     helpCreateNation: helpCreateNation,
     helpLevels: helpLevels,
+    statuses: statuses,
     joinNation: joinNation,
     leaveNation: leaveNation,
     loadTimedEvents: loadTimedEvents,
@@ -1090,6 +1113,7 @@ module.exports = {
     randomOWOreact: randomOWOreact,
     randomReiReact: randomReiReact,
     randomWelcome: randomWelcome,
+    randomFromArray: randomFromArray,
     removeRoleFromInactive: removeRoleFromInactive,
     sendNext: sendNext,
     sleep: sleep,

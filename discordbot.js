@@ -27,7 +27,7 @@ const business = require('./business');
 const personality = require('./personality');
 const interactions = require('./interactions');
 const webpage = require('./webpage.js');
-const { errorContext } = require('./tools');
+const { errorContext, randomFromArray } = require('./tools');
 const intervalStarted = false;
 const dayInMS = 86400000;
 
@@ -105,7 +105,10 @@ client.on('ready', function () {
 
 
     console.log('Logged in as ' + client.user.tag + '!');
-    client.user.setActivity(".P HELP", { type: 'LISTENING' });
+    
+    client.user.setPresence({ activities: [{ name: tools.randomFromArray(tools.statuses) }], status: 'online' });
+
+    //client.user.setActivity(".P HELP", { type: 'LISTENING' });
     client.guilds.fetch().then(function (guilds) {
         if (guilds.available)
             guilds = new Array(guilds);
@@ -128,12 +131,19 @@ client.on('ready', function () {
         }, function(err){console.error("Caching "+err);});
     });*/
     //TODO: Periodic check for share messages
-    /*client.setInterval(function(){
-        client.guilds.cache.array().forEach(function(thisguild){
-            tools.updateShareMessage(thisguild);
-        });
-    }, 300000);
 
+    const updateShares = async function(client){
+        console.log('Updating shares:');
+        const guilds = await client.guilds.fetch();
+        for(guild of guilds){
+            const fetchedGuild = await client.guilds.fetch(guild[0]);
+            console.log(await business.updateNationShares(fetchedGuild));
+        }
+    }
+
+    let shareFunction = setInterval(updateShares, 300000, client);
+
+    /*
     var periodic = function(){
         tools.asyncForEach(client.guilds.cache.array(),function(thisGuild){
             tools.removeRoleFromInactive(thisGuild);

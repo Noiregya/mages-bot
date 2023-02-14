@@ -150,7 +150,7 @@ function generateNationHtml(name, description, thumbnail, color, roles, currentR
           <div>Description<input class="mB-input" name="description" value="${description ? description : ''}"></div>
           <div>Thumbnail<input class="mB-input" name="thumbnail" value="${thumbnail ? thumbnail : ''}"></div>
           <div>Role<select class="mB-input" name="role" required>
-          <option value="">--Please choose an option--</option>`;
+          <option value="">--Please choose an option--</option>`; 
           if(roles){
             roles.forEach(role => {
               if(role.name!=='@everyone')
@@ -240,7 +240,7 @@ async function generateAdminForms(userGuilds, salt) {
       res += `<input name="guild" type="hidden" value="${guildWithChannel.guild.id}">
               <div>Welcome channel<select class="mB-input" name="welcome_channel">
               <option value="">--Please choose an option--</option>`;
-      guildWithChannel.channels.forEach(function (channel) {
+      guildWithChannel.channels.forEach(function (channel) {//TODO: exclude categories and non text channels
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.welcome ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += `</select></div>

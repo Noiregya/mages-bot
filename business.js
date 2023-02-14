@@ -168,10 +168,9 @@ async function register(interaction){
         else 
             return 'This command is reserved to administrators';
     }
-    
 }
 
-async function updateMenu(interaction){
+async function updateMenu(interaction){ //Interactions totally broken
     let errors  = [];
     if (!interaction.inGuild())
         return 'This command is only usable in a guild';
@@ -209,7 +208,7 @@ async function updateMenu(interaction){
         let embed = new EmbedBuilder()
         .setColor(color)
         .setTitle(nation.name)
-        .setFooter({ text: nation.isunique ? 'Join only one' : 'Join as many as you want'});;
+        .setFooter({ text: nation.isunique ? 'Join only one' : 'Join as many as you want'});
         if(nation.description)
             embed = embed.setDescription(nation.description);
         if(nation.thumbnail)
@@ -223,12 +222,96 @@ async function updateMenu(interaction){
         message = await informationChannel.send({embeds: [embed], components: [row] }).catch(err => errors.push(tools.errorContext(err, 'at updateMenu')));
         sentMessages.push(message.id);
     };
-    //tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
     if(sentMessages.length>0)
         dao.replaceMessages(informationChannel.guildId, informationChannel.id, sentMessages, 'nation');
+
+    const messageShare = await updateNationShares(interaction.guild, {toDelete:true, toCreate:true});
+
+    //tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
     if(errors.length>0)
         return tools.errorLog(errors);
-    return 'Menu updated successfully';
+    return messageShare+'\nMenu updated successfully';
+}
+
+/**
+ * Update the message that displays the shares
+ * @param {*} guild 
+ * @param {*} options {toDelete: Delete the current message to replace it, toCreate: Create a new message if it doesn't exist}
+ * @returns human readable status string
+ */
+async function updateNationShares(guild, options){
+    let errors = [];
+    let channels = await dao.getChannels(guild.id);
+    let informationChannelId;
+    if(channels && channels.rows && channels.rows.length > 0)
+        informationChannelId = channels.rows[0].information;
+    if(!informationChannelId || informationChannelId.length<17)
+        return 'Please select a channel in the configuration page to use this command';
+    let informationChannel = await guild.channels.fetch(informationChannelId).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+    if(!informationChannel)
+        return 'The information channel couldn\'t be fetched, was it deleted?';
+    //Get existing share message
+    messages = await dao.getMessages(guild.id, 'shares');
+    let shareMessage;
+    if(messages.rows.length > 0){
+        let messageChannel = await guild.channels.fetch(messages.rows[0].channel).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+        for(message of messages.rows){
+            shareMessage = await messageChannel.messages.fetch(message.id).catch(err=>{});
+            if(options.toDelete)
+                await shareMessage.delete().catch(err=>{errors.push(tools.errorContext(err, ' at updateNationShares'))})
+        }
+    }
+    let shareRes = await generateNationShares(guild).catch(err=>{errors.push(tools.errorContext(err, 'at updateNationShares'))});
+    let sentSareMessage;
+    if(shareMessage && !options.toDelete)
+        sentSareMessage = await shareMessage.edit({embeds: [shareRes]}).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+    else if(options.toCreate)
+        sentSareMessage = await informationChannel.send({embeds: [shareRes]}).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+    if(sentSareMessage)
+        dao.replaceMessages(informationChannel.guildId, informationChannel.id, sentSareMessage.id, 'shares');
+    
+    if(errors.length>0)
+        return tools.errorLog(errors);
+    return 'Nations updated successfully';
+}
+
+async function generateNationShares(guild){
+    let nations = await dao.getNations(guild.id).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+    let members = await guild.members.fetch().catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+    if(!nations || !members)
+        return new Error('Couldn\'t fetch everything needed for nation shares');
+    //let shares = [];
+    let total = 0;
+    for(i=0; i< nations.rows.length; i++){
+        if(nations.rows[i].isunique)
+            nations.rows[i].number = 0;
+    }
+    members.forEach(member => {
+        for(i=0; i<nations.rows.length; i++){
+            const role = member.roles.resolve(nations.rows[i].role);
+            if(role && nations.rows[i].isunique){
+                nations.rows[i].number += 1;
+                total += 1;
+                break;
+            }
+        }
+    });
+    let fieldsArray = [];
+    for(nationShare of nations.rows){
+        if(nationShare.isunique){
+            fieldsArray.push({
+                name: nationShare.name,
+                value: "Shares: "+Math.round((nationShare.number*100)/total)+"%"
+            });
+        }
+    }
+    const embed = new EmbedBuilder()
+        .setColor(0x7F20AF)
+        .setTitle('This dimension\'s shares')
+        .setTimestamp(new Date())
+        .setDescription('See the current nation shares below')
+        .setFields(fieldsArray);
+    return embed;
 }
 
 /**
@@ -493,6 +576,7 @@ module.exports = {
     toggleWhitelist: toggleWhitelist,
     unban: unban,
     updateMenu: updateMenu,
+    updateNationShares: updateNationShares,
     updateGuilds: updateGuilds,
     updateGuild: updateGuild,
     welcomeNewMember: welcomeNewMember

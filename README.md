@@ -3,6 +3,8 @@ This is a Discord bot working with discord.js.
 The goal is to provide tools to help with administration on discord server. The main feature is the role picker system called "nations" which allow to jazz up picked nations a lot more, show your support for something with a specific role etc.
 
 ## How to run the bot
+Create the bot on discord developper portal:
+* Go to oAuth2 and add Redirects for the {myBotUrl}/login endpoint 
 Set the environment variable:
 * OWNER: Discord snowflake of the owner of this instance of MAGES.
 * TOKEN: The token of the bot
