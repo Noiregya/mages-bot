@@ -115,8 +115,6 @@ client.on('ready', function () {
 
 
     console.log('Logged in as ' + client.user.tag + '!');
-    
-    client.user.setPresence({ activities: [tools.randomFromArray(tools.statuses)], status: 'online' });
 
     //client.user.setActivity(".P HELP", { type: 'LISTENING' });
     client.guilds.fetch().then(function (guilds) {
@@ -138,7 +136,12 @@ client.on('ready', function () {
         }
     }
 
+    const updatePresence = function(client){
+        client.user.setPresence({ activities: [tools.randomFromArray(tools.statuses)], status: 'online' });
+    }
+
     let shareFunction = setInterval(updateShares, 300000, client);
+    let changePresence = setInterval(updatePresence, 12 * 60 * 60 * 1000, client);
 
     /*
     var periodic = function(){
