@@ -239,6 +239,8 @@ async function updateMenu(interaction){ //Interactions totally broken
  * @returns human readable status string
  */
 async function updateNationShares(guild, options){
+    if(!options)
+        options = {};
     let errors = [];
     let channels = await dao.getChannels(guild.id);
     let informationChannelId;
