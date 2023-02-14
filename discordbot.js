@@ -116,7 +116,6 @@ client.on('ready', function () {
 
     console.log('Logged in as ' + client.user.tag + '!');
 
-    //client.user.setActivity(".P HELP", { type: 'LISTENING' });
     client.guilds.fetch().then(function (guilds) {
         if (guilds.available)
             guilds = new Array(guilds);
@@ -140,7 +139,10 @@ client.on('ready', function () {
         client.user.setPresence({ activities: [tools.randomFromArray(tools.statuses)], status: 'online' });
     }
 
+    updateShares(client);
     let shareFunction = setInterval(updateShares, 300000, client);
+
+    updatePresence(client);
     let changePresence = setInterval(updatePresence, 12 * 60 * 60 * 1000, client);
 
     /*
