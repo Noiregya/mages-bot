@@ -45,6 +45,11 @@ button,html [type=button],[type=reset],[type=submit]{-webkit-appearance:button}
     column-gap: 2em;
 }
 
+.mB-content{
+    position: relative;
+    z-index:1;
+}
+
 @media (min-width:601px){
     .mB-content{max-width:980px;margin:auto}.mB-rest{overflow:hidden}
     .guildheader{
@@ -195,10 +200,104 @@ hr:after {
 .mages-bg{
     background-image: url('./magesReference.png');
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    /*background-attachment: fixed;*/
     background-position-x: -20%;
     background-size: 60%;
 }
+
+
+/* Begin parallax */
+/* if you do not remove the margin, you will see a vertical scrollbar on the .parallax div */
+
+body {
+    margin: 0;
+  }
+  
+  /* parallax "viewport" */
+  .parallax {
+    height: 120vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    perspective: 1px;
+  }
+  
+  .parallax-layer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  @media (max-aspect-ratio: 99/9) {
+    .layer1 {
+        transform: translate3d(-140vh,-90vh,-1px) scale(0.8);
+    }
+    .layer2 {
+        transform: translate3d(-220vh,-120vh,-0.5px) scale(0.6);
+    }
+    .layer3 {
+        transform: translate3d(-220vh,-90vh,-5px) scale(2.2);
+    }
+  }
+
+  @media (max-aspect-ratio: 20/9) {
+    .layer1 {
+        transform: translate3d(-56vh,-25vh,-1px) scale(1);
+    }
+    .layer2 {
+        transform: translate3d(-150vh,-120vh,-0.5px) scale(0.6);
+    }
+    .layer3 {
+        transform: translate3d(-150vh,-90vh,-5px) scale(2.2);
+    }
+  }
+
+  
+  @media (max-aspect-ratio: 1/1) {
+    .layer1 {
+        transform: translate3d(-135vh,-148vh,-1px) scale(0.5);
+    }
+    .layer2 {
+        transform: translate3d(-180vh,-160vh,-0.5px) scale(0.4);
+    }
+    .layer3 {
+        transform: translate3d(-150vh,-90vh,-5px) scale(1.4);
+    }
+  }
+
+  
+
+  @media (max-aspect-ratio: 9/16) {
+    .layer1 {
+        transform: translate3d(-135vh,-148vh,-1px) scale(0.5);
+    }
+    .layer2 {
+        transform: translate3d(-180vh,-160vh,-0.5px) scale(0.4);
+    }
+    .layer3 {
+        transform: translate3d(-150vh,-90vh,-5px) scale(1.4);
+    }
+  }
+  
+  
+
+  .layer1 .layer2 .layer3{
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    z-index: -1;
+  }
+
+  .wrapper {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    perspective: 2px;
+  }
+/* End parallaxe */
+
 
 #toast {
     visibility: hidden;
