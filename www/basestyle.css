@@ -229,59 +229,6 @@ body {
     left: 0;
   }
 
-  @media (max-aspect-ratio: 99/9) {
-    .layer1 {
-        transform: translate3d(-140vh,-90vh,-1px) scale(0.8);
-    }
-    .layer2 {
-        transform: translate3d(-220vh,-120vh,-0.5px) scale(0.6);
-    }
-    .layer3 {
-        transform: translate3d(-220vh,-90vh,-5px) scale(2.2);
-    }
-  }
-
-  @media (max-aspect-ratio: 20/9) {
-    .layer1 {
-        transform: translate3d(-56vh,-25vh,-1px) scale(1);
-    }
-    .layer2 {
-        transform: translate3d(-150vh,-120vh,-0.5px) scale(0.6);
-    }
-    .layer3 {
-        transform: translate3d(-150vh,-90vh,-5px) scale(2.2);
-    }
-  }
-
-  
-  @media (max-aspect-ratio: 1/1) {
-    .layer1 {
-        transform: translate3d(-135vh,-148vh,-1px) scale(0.5);
-    }
-    .layer2 {
-        transform: translate3d(-180vh,-160vh,-0.5px) scale(0.4);
-    }
-    .layer3 {
-        transform: translate3d(-150vh,-90vh,-5px) scale(1.4);
-    }
-  }
-
-  
-
-  @media (max-aspect-ratio: 9/16) {
-    .layer1 {
-        transform: translate3d(-135vh,-148vh,-1px) scale(0.5);
-    }
-    .layer2 {
-        transform: translate3d(-180vh,-160vh,-0.5px) scale(0.4);
-    }
-    .layer3 {
-        transform: translate3d(-150vh,-90vh,-5px) scale(1.4);
-    }
-  }
-  
-  
-
   .layer1 .layer2 .layer3{
     position: absolute;
     height: 100%;
