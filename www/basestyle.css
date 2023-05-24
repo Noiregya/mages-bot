@@ -223,12 +223,12 @@ body {
   
   .parallax-layer {
     position: absolute;
-    top: 0;
+    top: -12px;
     right: 0;
     bottom: 0;
     left: 0;
   }
-
+  
   .layer1 .layer2 .layer3{
     position: absolute;
     height: 100%;
