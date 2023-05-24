@@ -44,8 +44,8 @@
 
     function alignBackground(){
 
-      const [z1,z2,z3] = [-1, -5, -0.5];
-      const [s1,s2,s3] = [0.8, 1.2, 0.6];
+      const [z1,z2,z3] = [-5, -1, -0.5];
+      const [s1,s2,s3] = [1.8, 0.5, 0.6];
 
       let lay1 = document.getElementById("layer1");
       let offset1 = calculateAlign(lay1, z1, s1);
@@ -53,7 +53,7 @@
 
       let lay2 = document.getElementById("layer2");
       let offset2 = calculateAlign(lay2, z2, s2);
-      lay2.style.transform = `translate3d(${offset2.x -1600 + window.innerWidth*1}px,${offset2.y}px,${z2}px) scale(${s2})`;
+      lay2.style.transform = `translate3d(${offset2.x - 600 + window.innerWidth*0.3}px,${offset2.y}px,${z2}px) scale(${s2})`; //Adjust the character with the width
 
       let lay3 = document.getElementById("layer3");
       let offset3 = calculateAlign(lay3, z3, s3);
