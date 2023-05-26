@@ -70,7 +70,7 @@ function getGuilds() {
 
 function getGuildProperties(guildIds){
     var query = {
-        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.is_frozen, '
+        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.mute_role, guilds.is_frozen, '
             +'channels.welcome, channels.information, channels.starboard '
             +'FROM guilds LEFT OUTER JOIN channels ON guilds.id = channels.guild '
             +'WHERE guilds.id = ANY($1)',
@@ -400,8 +400,8 @@ function replaceGuild(guild, guildInfo){
         console.error('dao.replaceGuild ' + err);
     });
     query = {
-        text: 'UPDATE guilds SET nb_star=$1, active_delay=$2, is_frozen=$3 where id=$4;',
-        values: [guildInfo.nbStarboard, guildInfo.inactive, guildInfo.frozen ,guild]
+        text: 'UPDATE guilds SET nb_star=$1, active_delay=$2, mute_role=$3, is_frozen=$4 where id=$5;',
+        values: [guildInfo.nbStarboard, guildInfo.inactive, guildInfo.muteRole ,guildInfo.frozen ,guild]
     };
     pool.query(query).catch(function (err) {
         console.error('dao.replaceGuild ' + err);

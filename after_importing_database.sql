@@ -7,3 +7,4 @@ create table messages(guild numeric not null, channel numeric not null, id numer
 alter table messages add constraint messages_pkey PRIMARY KEY(guild, channel, id);
 alter table messages add constraint messages_guild_fkey FOREIGN KEY(guild) REFERENCES guilds(id) ON DELETE CASCADE;
 alter table admin_whitelist rename column "user" to id;
+alter table guilds add column mute_role numeric;

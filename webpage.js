@@ -258,6 +258,16 @@ async function generateAdminForms(userGuilds, salt) {
       res += `</select></div>
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
+              <div>Role<select class="mB-input" name="mute_role" required>
+              <option value="">--Please choose an option--</option>`; 
+              let currentRole = guildWithChannel.properties.mute_role;
+              if(guildWithChannel.roles){
+                guildWithChannel.roles.forEach(role => {
+                  if(role.name!=='@everyone')
+                    res += `<option value="${role.id}" ${role.id === currentRole ? 'selected' : ''}>${role.name}</option>`;
+                });
+              }
+      res += `</select></div>
               <div class="inline"><div>Mute all users on join</div>${generateBetterCheckbox('frozen', guildWithChannel.properties.is_frozen)}</div>
               </div><hr>
               <a class="mB-button" onclick="addNation(event.target)">Create a new nation</a>`;

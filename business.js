@@ -107,12 +107,15 @@ function updateGuild(body){
         && (numbersOnly.test(body.welcome_channel) || !body.welcome_channel.length) 
         && (numbersOnly.test(body.information_channel) || !body.information_channel.length)
         && (numbersOnly.test(body.starboard_channel) || !body.starboard_channel.length)
-        && (numbersOnly.test(body.nb_starboard) || !body.nb_starboard.length)
+        && (numbersOnly.test(body.nb_starboard) || !body.nb_starboard.length) 
+        && (legalCharacters.test(body.mute_role) || !body.mute_role.length)
     let guildInfo = { welcomeChannel:body.welcome_channel || 0, 
             informationChannel:body.information_channel || 0,
             starboardChannel:body.starboard_channel || 0, 
             nbStarboard:body.nb_starboard || 0, 
-            inactive:body.inactive && 1, frozen:body.frozen === 'true'};
+            inactive:body.inactive && 1, 
+            muteRole:body.mute_role || 0,
+            frozen:body.frozen === 'true'};
     if(!isValid)
         throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
     //Turn values into arrays if they aren't
@@ -391,8 +394,8 @@ async function pruneGuilds(joinedGuilds, toDelete){
     return any ? result : 'All current guilds are being used';
 }
 
-//Welcome a new member, add roles if setup
-function addRolesToNewMember(member){
+//Welcome a new member
+function addRolesToNewMember(member){//TODO: Rename function
     if(member != null){
         dao.getWelcomeChannel(member.guild).then(function(channel_id){
             dao.getInfoChannel(member.guild).then(function(info_id){
@@ -419,7 +422,6 @@ function addRolesToNewMember(member){
 }
 
 //Mute or unmute user
-//TODO: Muted role by ID instead of name
 async function muteUnmute(client, interaction){
     let message;
     if(interaction.member //Check if this is on a server
@@ -437,11 +439,11 @@ async function muteUnmute(client, interaction){
             return message;
         }
         //Retrieve role
-        let role = await tools.findByName(interaction.guild.roles, 'Muted').catch(function(err){
-            console.error(err);
-            message = 'No role named \'Muted\' have been found on this server';
-            return message;
-        });
+        let roleId = await dao.getGuildProperties([interaction.guildId]);
+        roleId = roleId.rows[0].mute_role;
+        let roles = await interaction.guild.roles;
+        let role = roles.resolve(roleId);
+
         if (!role)
             return 'A mute role have not been defined for this guild. Set one in the admin page.';
         if (target._roles.includes(role.id)){
