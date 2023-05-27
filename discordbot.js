@@ -56,12 +56,11 @@ function wasUpdated(){
             fs.writeFileSync('version_flag', version);
             console.log('MAGES. updated to version ' + version);
             return true;
-            //initialize();
         }
+        return false;
     } catch (err) {
         console.error(err);
         return true;
-        //initialize();
     };
 }
 

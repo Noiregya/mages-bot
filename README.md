@@ -25,6 +25,6 @@ Run the command `npm run start`
 ## SSL Configuration
 The following files must be present in the ssl directory:
 * postgresql database
- * pg_root.cer: Certificate authority certificate
- * pg_client.key: Client side private key
- * pg_client.cer: Client side certificate
+ * mages_root.cer: Certificate authority certificate
+ * mages_client.key: Client side private key
+ * mages_client.cer: Client side certificate
