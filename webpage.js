@@ -1,19 +1,19 @@
 const fs = require('node:fs');
+const https = require("https");
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require("express-validator");
 const { request } = require('undici');
 const dao = require('./dao');
 const business = require('./business');
 const {errorContext, errorLog} = require('./tools');
 const { PermissionsBitField } = require('discord.js');
-const { response } = require('express');
 const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
 const cookieSecret = process.env.COOKIE_SECRET;
+const sslDirectory = process.env.SSL_DIRECTORY;
 const inviteLink = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=1237219404868&scope=bot`;
 
 const root = __dirname + '/www/';
@@ -31,9 +31,18 @@ function getAuthUrl(localUrl){
 let client;
 function init(discordClient) {
   client = discordClient;
-
   //Start server
-  app.listen(port, () => {
+  https
+  .createServer(
+		// Provide the private and public key to the server by reading each
+		// file's content with the readFileSync() method.
+    {
+      key: fs.readFileSync(sslDirectory+"/mages_client.key"),
+      cert: fs.readFileSync(sslDirectory+"/mages_client.cer"),
+    },
+    app
+  )
+  .listen(port, () => {
     console.log(`The website is running on port ${port}`);
   });
 }
@@ -455,7 +464,7 @@ fs.readdirSync(root).forEach(file => {
 });
 
 async function getDiscordToken(code, host) {//TODO: Change for https?
-  let redirect_uri = `http://${host}/login`;
+  let redirect_uri = `https://${host}/login`;
   //Get the token from Discord
   const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
     method: 'POST',
