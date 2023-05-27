@@ -37,8 +37,8 @@ function init(discordClient) {
 		// Provide the private and public key to the server by reading each
 		// file's content with the readFileSync() method.
     {
-      key: fs.readFileSync(sslDirectory+"/mages_client.key"),
-      cert: fs.readFileSync(sslDirectory+"/mages_client.cer"),
+      key: fs.readFileSync(sslDirectory+"/client.key"),
+      cert: fs.readFileSync(sslDirectory+"/client.cer"),
     },
     app
   )

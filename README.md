@@ -51,9 +51,9 @@ Run the command `npm run start`
 
 ## SSL Configuration
 The following files must be present in the ssl directory:
-* mages_root.cer: Certificate authority certificate
-* mages_client.key: Client side private key
-* mages_client.cer: Client side certificate
+* root.cer: Certificate authority certificate
+* client.key: Client side private key
+* client.cer: Client side certificate
 Note: You must allow this certificate to log as your database user.
 
 ## Credits
