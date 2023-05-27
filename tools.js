@@ -1,8 +1,10 @@
 const Discord = require('discord.js');
 const dao = require('./dao');
 
+//TODO: Make new website
 const website = "http://mages-bot.alwaysdata.net/";
 
+//TODO: Rewrite help message
 const help = ["List of available commands:"+
               "\`\`\`.p help - DM this message"+
               "\n.p help levels - Get explaination about the levels"+
@@ -86,6 +88,24 @@ const things = [
     "This is as the Stone Door of Faith has selected. Loochs tneve emag noitamina cisum.",
     "Is this fate's doings?",
     "Are you from this dimension? I don't feel any magic coming from you."
+];
+
+const statuses = [
+    { name: 'with my staff', type: 0 },
+    { name: 'hacking into the Organization\'s mainframe', type: 1 },
+    { name: 'experimenting on assistant', type: 1 },
+    { name: 'for a new assistant', type: 3 },
+    { name: 'latin lessons', type: 2 },
+    { name: 'Doc P. brewing tutorials', type: 3 },
+    { name: 'designing a new hat', type: 1 },
+    { name: 'a 5pb. concert', type: 2 },
+    { name: 'and tuning wireless electric guitar', type: 2 },
+    { name: 'bananas being microwaved', type: 3 },
+    { name: 'fried chicken time traveling', type: 3 },
+    { name: 'reality increaser', type: 0 },
+    { name: 'homemade mecha fighters game', type: 0 },
+    { name: 'with killachines', type: 0 },
+    { name: 'with scientific magic', type: 0 }
 ];
 
 const owos= [
@@ -174,54 +194,53 @@ async function asyncForEach(array, callback) { // jshint ignore:line
 }
 
 // A function that can be called to private message the bot's target to make sure they know
-function genericEventNotifier(target, client, name, currentEvent, parameter2){
-    if(target != client.user){
-        target.createDM().then(function(dmChan){
-            let string;
-            switch(name){
-                case 'guildCreate':
-                    string = "I decided to join a new laboratory, it's called "+currentEvent.name+".\n";
-                    break;
-                case 'error':
-                    string = 'Websocket error '+currentEvent.name+'\n'+currentEvent.message+'\n'+
-                        "I've failed I've failed I've failed \n"+
-                        "I've failed I've failed I've failed \n"+
-                        "I've failed I've failed I've failed \n";
-                    break;
-                case 'guildDelete':
-                    string = "I'm no longer in "+currentEvent.name+'... I wonder what happened.';
-                    break;
-                case 'warn':
-                    string = 'General warning: '+currentEvent;
-                    break;
-                case 'guildBanAdd':
-                    string = currentEvent+' has been banned from the '+parameter2+' realm';
-                    break;
-                case 'guildBanRemove':
-                    string = currentEvent+' has been unbanned from the '+parameter2+' realm';
-                    break;
-                case 'guildMemberAdd':
-                    string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild;
-                    break;
-                case 'guildMemberRemove':
-                    string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild;
-                    break;
-                case 'userFrozen':
-                    string = "Member "+currentEvent.user.tag+" was frozen from "+currentEvent.guild.name+" because of the server's policy.";
-                    break;
-                case 'guildMuteAdd':
-                    string = "Member "+currentEvent.user.tag+" was muted from "+currentEvent.guild.name+". Check audit logs for more info.";
-                    break;
-                default:
-                    string = 'No message for event '+name+'\n'+currentEvent;
-            }
-            dmChan.send(string).catch(function(err){
-                console.error('Unable to send DM, '+err);
-            });
-        },function(err){
-            console.error('Cannot create DM: '+err+'\n');
+function genericEventNotifier(target, name, currentEvent, parameter2){
+    target.createDM().then(function(dmChan){
+        let string;
+        switch(name){
+            case 'guildCreate':
+                string = "I decided to join a new laboratory, it's called "+currentEvent.name+".\n";
+                break;
+            case 'error':
+                string = 'Websocket error '+currentEvent.name+'\n'+currentEvent.message+'\n'+
+                    "I've failed I've failed I've failed \n"+
+                    "I've failed I've failed I've failed \n"+
+                    "I've failed I've failed I've failed \n";
+                break;
+            case 'guildDelete':
+                string = "I'm no longer in "+currentEvent.name+'... I wonder what happened.';
+                break;
+            case 'warn':
+                string = 'General warning: '+currentEvent;
+                break;
+            case 'guildBanAdd':
+                string = currentEvent.tag+' has been banned from the '+parameter2.name+' realm';
+                break;
+            case 'guildBanRemove':
+                string = currentEvent.tag+' has been unbanned from the '+parameter2.name+' realm';
+                break;
+            case 'guildMemberAdd':
+                string = "Hey, today <@"+currentEvent.id+"> ("+currentEvent.user.tag+") joined "+currentEvent.guild.name;
+                break;
+            case 'guildMemberRemove':
+                string = "Sad news, <@"+currentEvent.id+"> ("+currentEvent.user.tag+") left "+currentEvent.guild.name;
+                break;
+            case 'userFrozen':
+                string = "Member "+currentEvent.user.tag+" was frozen from "+currentEvent.guild.name+" because of the server's policy.";
+                break;
+            case 'guildMuteAdd':
+                string = "Member "+currentEvent.user.tag+" was muted from "+currentEvent.guild.name+". Check audit logs for more info.";
+                break;
+            default:
+                string = 'No message for event '+name+'\n';
+                string += JSON.stringify(currentEvent);
+        }
+        dmChan.send(string).catch(function(err){
+            console.error('Unable to send DM, '+err);
         });
-    }
+    },function(err){
+        console.error('Cannot create DM: '+err+'\n');
+    });
 }
 
 async function findByName(manager, name){ // jshint ignore:line
@@ -232,19 +251,60 @@ async function findByName(manager, name){ // jshint ignore:line
     return res;
 }
 
-function levelEventNotifier(level, guild, client, name, currentEvent, parameter2){
-    dao.getWhiteListedAdmins(guild).then(function(admins){
-        getUsersPower(admins.rows, guild).then(function(powerUsers){
-            powerUsers.forEach(function(memberPower){
-                if(memberPower.power <= level){
-                    genericEventNotifier(memberPower.member.user, client, name, currentEvent, parameter2);
-                }else if(memberPower.power >= 99){
-                    //No need to keep track for users without powers
-                    dao.blacklistAdmin(memberPower.member.user, guild);
-                }
-            });
-        });
+//Notify users with a specific permission
+async function permissionEventNotifier(permissionFlag, guild, name, currentEvent, parameter2){
+    let res = 'Notification sent to:';
+    let admins = await dao.getWhiteListedAdmins(guild.id).catch(function(err){
+        console.error('Error getting whitelisted admins: '+err);
     });
+    let ids = [];
+    for(admin of admins.rows){
+        ids.push(admin.id);
+    }
+    let members = await guild.members.fetch({user: ids});
+    members.forEach(function(member){
+        if(member.permissions.has(permissionFlag)){
+            res += '\n' + member.user.tag;
+            genericEventNotifier(member.user, name, currentEvent, parameter2);
+        }else{
+            console.error(member.user.tag + ' could not be notified\n');
+        }
+    });
+    return res;
+}
+
+/**
+ * Notify all members with a specific permission flag
+ * @param {*} guild 
+ * @param {*} error 
+ */
+async function permissionErrorNotifier(guild, permissionFlag, error){
+    let res = 'Notification sent to:';
+    let users = [];
+    if(guild){
+        let admins = await dao.getWhiteListedAdmins(guild.id).catch(function(err){
+            console.error('Error getting whitelisted admins: '+err);
+        });
+        let ids = [];
+        admins.rows.forEach(function(row){
+            ids.push(row.id);
+        })
+        let members = await guild.members.fetch({user: ids});
+        members.forEach(function(member){
+            if(member.permissions.has(permissionFlag)){
+                res += '\n' + member.user.tag;
+                users.push(member.user);
+                //genericEventNotifier(member.user, name, currentEvent, parameter2);
+            }else{
+                console.error(member.user.tag + ' could not be notified\n');
+            }
+        });
+    }
+    for(user of users){
+        let dm = await user.createDM().catch(err=>console.error('Cannot send DM '+err));
+        dm.send(errorLog(error));
+    }
+    return res;
 }
 
 //Unused for now but might be handy?
@@ -304,6 +364,10 @@ async function getUsersPower(members, guild){ // jshint ignore:line
     return membersWithLevel;
 }
 
+function randomFromArray(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
+}
+
 function randomWelcome(){
     return things[Math.floor(Math.random()*things.length)];
 }
@@ -333,31 +397,8 @@ function randomReiReact(){
     return reiReact[Math.floor(Math.random()*reiReact.length)];
 }
 
-async function getGuildSummary(guild){ // jshint ignore:line
-    let guildSummary = await dao.getGuildInfo(guild);// jshint ignore:line
-    if(!guildSummary || !guildSummary.rows || guildSummary.rows.length < 1){
-        return 'Impossible to find guild '+guild.name;
-    }
-
-    let guildInfo = guildSummary.rows[0];
-    let message = 'Summary for guild '+guild.name+'\n';
-    let starboardChannel = guild.channels.resolve(guildInfo.starboard_channel_id)||{name: 'Channel not found'};
-    let welcomeChannel = guild.channels.resolve(guildInfo.welcome_channel_id)||{name: 'Channel not found'};
-    let infoChannel = guild.channels.resolve(guildInfo.information_channel_id)||{name: 'Channel not found'};
-    message += 'Name: '+guildInfo.name+'\n';
-    message += 'information_channel_id: '+infoChannel.name+'\n';
-    message += 'Welcome channel: '+welcomeChannel.name+'\n';
-    message += 'Nations are assigned randomly: '+guildInfo.random_assign_nation+'\n';
-    message += 'Shares message id: '+guildInfo.shares_message_id+'\n';
-    message += 'Delay before considered inactive: '+guildInfo.active_delay+' days\n';
-    message += 'Starboard channel: '+starboardChannel.name+'\n';
-    message += 'Number of stars required: '+guildInfo.nb_star+'\n';
-
-    return message;
-}
-
 function getRandomNation(guild){
-    return dao.getNations(guild).then(function(nations){
+    return dao.getNations(guild.id).then(function(nations){
         let realNations = [];
         nations.rows.forEach(function(nation){
             if(nation.isunique){
@@ -431,15 +472,15 @@ async function convertMessageToEmbed(msg, prefix){ // jshint ignore:line
         });*/
         color = member.displayColor;
     }else{
-        console.log("Member "+message.author.tag+" seems to have left.");
+        console.error("Member "+message.author.tag+" seems to have left.");
     }
-    
+
     let content = stripLinks(message.content);
     let description = content.text;
     let authorName = prefix+message.author.tag
     let authorIcon = message.author.displayAvatarURL();
     let timestamp = new Date(message.createdTimestamp);
-    
+
     let attachements = message.attachments.array();
     let embeds = message.embeds;
     if(embeds.length !== 0){
@@ -480,19 +521,19 @@ function stripLinks(string){
 
 function decorate(embed, description, authorName, authorIcon, timestamp, color){
     embed.setDescription(description)
-    .setAuthor(authorName, authorIcon)
-    .setTimestamp(timestamp)
-    .setColor(color);
+        .setAuthor(authorName, authorIcon)
+        .setTimestamp(timestamp)
+        .setColor(color);
     return embed;
 }
 
 async function getMemberNation(member){ // jshint ignore:line
     if (member !== null){
         //get nation
-        return await dao.getNations(member.guild).then(async function(nations){ // jshint ignore:line
+        return await dao.getNations(member.guild.id).then(async function(nations){ // jshint ignore:line
             var result;
             await nations.rows.forEach(function(nation){ // jshint ignore:line
-                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role_id && nation.isunique);
+                let correspondingNation = member.roles.cache.filter(role => role.id == nation.role && nation.isunique);
                 if(correspondingNation.array().length !== 0){
                     result = correspondingNation.array()[0];
                 }
@@ -504,57 +545,6 @@ async function getMemberNation(member){ // jshint ignore:line
     }
 }
 
-function updateInfoMessage(channel, member, dao){
-    deleteOneInAChannel(channel, member);
-    let guild = channel.guild;
-    channel.send('\`\`\`React to the below messages to join a nation and secret rooms!\`\`\`').catch(function(err){console.error('updateInfoMessage() '+err);});
-    dao.getNations(guild).then(function(nations){
-        nations.rows.forEach(function(currentNation){
-            let embedNation = {
-                embed: {
-                    title:currentNation.name,
-                    description:currentNation.description,
-                    color:currentNation.color,
-                    url:website,
-                    thumbnail: {
-                        url: currentNation.thumbnail
-                    }	}	};
-            channel.send(embedNation).then(function(message){
-                message.react('👍').then(function(res){
-                }, function(err){
-                    console.error("Could not react "+err);
-                });
-                let role = guild.roles.resolve(currentNation.role_id);
-                dao.updateMessageId(role, message.id);
-            }, function(err){
-                console.error("Couldn't send message "+err);
-            });
-        });
-        //Shares
-        let fieldsArray = [];
-
-        makeShareMessage(guild).then(function(shareMessage){
-            channel.send(shareMessage).then(function(message){
-                dao.updateShareMessage(guild, message.id);
-            },function(err){console.error('makeShareMessage() '+err);});
-        });
-
-        //Invite link
-        channel.guild.fetchInvites().then(function(invites){
-            var finalInvite=null;
-            invites.array().forEach(function(invite){
-                if(!invite.temporary && invite.maxUses=== 0){
-                    finalInvite = invite;
-                }
-            });
-            if(finalInvite!== null){
-                channel.send('Feel free to invite your friends using this link!\n'+finalInvite.url).catch(function(err){console.error('updateInfoMessage() '+err);});
-            }
-        }, function(err){console.error('fetchInvites() '+err);});
-    },function(err){
-        console.error("Could not get nations "+err);
-    });
-}
 function updateShareMessage(guild){
     makeShareMessage(guild).then(function(shareMessage){
         dao.getInfoChannel(guild).then(function(infoChannelId){
@@ -619,7 +609,6 @@ async function deleteOneInAChannel(channel, member){// jshint ignore:line
         return;
     }
     var runs = 0;
-    var lastOne;
     let isDone = false;
     while(!isDone || runs < 100){//100 runs * 50 messages = 5000 messages
         runs++;
@@ -689,14 +678,14 @@ function leaveNation(role, member, nations){
 
 function getShares(guild){
     return guild.members.fetch().then(function(memberCollection){
-        return dao.getNations(guild).then(function(nationsRequest){
+        return dao.getNations(guild.id).then(function(nationsRequest){
             let countArray = [];
             nationsRequest.rows.forEach(function(nationRequest){
                 if(nationRequest.isunique){
                     let memberCount = 0;
                     memberCollection.array().forEach(function(member){
                         member.roles.cache.forEach(function(role){
-                            if(role.id == nationRequest.role_id){
+                            if(role.id == nationRequest.role){
                                 memberCount++;
                             }
                         });
@@ -970,9 +959,7 @@ async function consumeTimedEvent(client, event){// jshint ignore:line
 function removeRoleFromInactive(guild){
     console.log('Removing inactives from '+guild.name);
     getInactiveMembers(guild,30).then(function(inactives){
-        console.log(guild.name);
         dao.getActiveRoles(guild, false).then(function(roleRes){
-
             inactives.forEach(function(inactive){
                 console.log(roleRes);
                 inactive.roles.remove(roleRes).then(
@@ -990,45 +977,101 @@ function removeRoleFromInactive(guild){
     });
 }
 
+function sendNext(pinnedArray ,i ,notLast ,targetChannel){
+    if(i >= 0 && i < pinnedArray.length-1 || i == pinnedArray.length-1 && !notLast){
+        tools.convertMessageToEmbed(pinnedArray[i], '📌 ').then(function(toSend){
+            toSend.forEach(function(embed){
+                targetChannel.send(embed).then(function(res){
+                    if(pinnedArray[i].pinned){
+                        pinnedArray[i].unpin().catch(function(err){
+                            console.error("unpin() "+err);
+                        });
+                    }
+                    sendNext(pinnedArray, i-1, notLast, targetChannel);
+                }, function(err){
+                    console.error("SECURE "+err);
+                });
+            });
+        });
+    }else if(i == pinnedArray.length-1){
+        sendNext(pinnedArray, i-1, notLast, targetChannel);
+    }
+}
+
+//Unified method of adding business information to an error object before throwing it
+function errorContext(err, message, secret) {
+    if (!err.business) err.business = []; //Create array if it doesn't exist
+    if (!message) message = 'Failed to provide message element to the errorContext function';//Error if called improperly
+    let rank = err.business.push(message) - 1; //Adds the message to the array and returns the index of that element
+    //Information useful for debugging but that we don't want to show the end user
+    if (secret) {
+      if (!err.secret) err.secret = [];
+      err.secret[rank] = secret; //Secret placed at the same index as the business message
+    }
+    return err;
+}
+
+//Display the logs formatted properly in the logs
+function errorLog(errs) {
+    let string;
+    if (!Array.isArray(errs))
+      errs = [errs];
+    errs.forEach(err => {
+      string = 'An error occured: ' + err.name + ' : ' + err.message + '\n';
+      if (err.business) {
+        for (i = 0; i < err.business.length; i++) {
+          string += err.name + ' : ' + err.business[i];
+          if (err.secret && err.secret[i]) string += ' ' + err.secret[i];
+          string += '\n'
+        }
+      }
+      console.error(string);
+    });
+    return string;
+  }
+
 module.exports = {
-    resolveChannelString:resolveChannelString,
-    website: website,
-    deleteAllInAChannel: deleteAllInAChannel,
-    deleteOneInAChannel: deleteOneInAChannel,
-    updateInfoMessage: updateInfoMessage,
-    sleep: sleep,
-    calculateYesterday: calculateYesterday,
-    help: help,
-    helpAssign: helpAssign,
-    helpLevels: helpLevels,
-    helpCreateNation: helpCreateNation,
-    parseMessage: parseMessage,
-    leaveNation: leaveNation,
-    genericEventNotifier: genericEventNotifier,
-    pollColor: pollColor,
-    getResultImage: getResultImage,
-    randomWelcome: randomWelcome,
-    randomOWOreact: randomOWOreact,
-    randomHelloReact: randomHelloReact,
-    randomReiReact: randomReiReact,
-    levelEventNotifier: levelEventNotifier,
-    getRandomNation: getRandomNation,
-    joinNation: joinNation,
-    getShares: getShares,
-    updateShareMessage: updateShareMessage,
-    getActiveMembers: getActiveMembers,
-    getInactiveMembers: getInactiveMembers,
     asyncForEach: asyncForEach,
-    removeRoleFromInactive: removeRoleFromInactive,
+    calculateYesterday: calculateYesterday,
+    consumeTimedEvent: consumeTimedEvent,
     convertMessageToEmbed: convertMessageToEmbed,
-    getMemberNation: getMemberNation,
-    findByName: findByName,
-    getGuildSummary: getGuildSummary,
     createTimedMessageEvent: createTimedMessageEvent,
     createTimedPollEvent: createTimedPollEvent,
-    submitTimedEvent: submitTimedEvent,
+    deleteAllInAChannel: deleteAllInAChannel,
+    deleteOneInAChannel: deleteOneInAChannel,
     executeTimedEvent: executeTimedEvent,
-    consumeTimedEvent: consumeTimedEvent,
+    findByName: findByName,
+    genericEventNotifier: genericEventNotifier,
+    getActiveMembers: getActiveMembers,
+    getInactiveMembers: getInactiveMembers,
+    getMemberNation: getMemberNation,
+    getRandomNation: getRandomNation,
+    getResultImage: getResultImage,
+    getShares: getShares,
+    help: help,
+    helpAssign: helpAssign,
+    helpCreateNation: helpCreateNation,
+    helpLevels: helpLevels,
+    statuses: statuses,
+    joinNation: joinNation,
+    leaveNation: leaveNation,
     loadTimedEvents: loadTimedEvents,
-    stripLinks: stripLinks
+    parseMessage: parseMessage,
+    permissionEventNotifier: permissionEventNotifier,
+    pollColor: pollColor,
+    randomHelloReact: randomHelloReact,
+    randomOWOreact: randomOWOreact,
+    randomReiReact: randomReiReact,
+    randomWelcome: randomWelcome,
+    randomFromArray: randomFromArray,
+    removeRoleFromInactive: removeRoleFromInactive,
+    sendNext: sendNext,
+    sleep: sleep,
+    stripLinks: stripLinks,
+    submitTimedEvent: submitTimedEvent,
+    updateShareMessage: updateShareMessage,
+    resolveChannelString:resolveChannelString,
+    permissionErrorNotifier: permissionErrorNotifier,
+    errorContext: errorContext,
+    errorLog: errorLog
 };

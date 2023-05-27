@@ -15,12 +15,12 @@ function reactToMessage(client, msg) {
             }
         }
     }else if (msg.content.match(/MAGES\./)) {
-        dao.updateFriendliness(msg.author.id, +1).catch(function(err) {
+        dao.updateFriendliness(msg.author.id, msg.guild.id, 1).catch(function(err) {
             console.error(err);
         });
     }
     if ((msg.content.toUpperCase().includes('OWO') || msg.content.toUpperCase().includes('UWU')) && !reactedToPeriod) {
-        dao.updateFriendliness(msg.author.id, -1).then(res =>{
+        dao.updateFriendliness(msg.author.id, msg.guild.id,-1).then(res =>{
             if (res > 0) {
                 if (Math.random()*100 < 50) {
                     msg.react('604188896275988481').catch(err => {console.error(err);});
@@ -38,13 +38,13 @@ function reactToMessage(client, msg) {
             if (hasSaidHelloRecently.includes(msg.author.id)) {
                 //We just said hello
                 msg.reply(' we just said hello...');
-                dao.updateFriendliness(msg.author.id, -2).then(res=>{
+                dao.updateFriendliness(msg.author.id, msg.guild.id, -2).then(res=>{
                     if (res === -1 || res === 0) {
                         msg.channel.send('That\'s it, I\'m done.').catch(err=>(err));
                     }
                 },err=>{console.error(err);});
             }else{
-                dao.updateFriendliness(msg.author.id, 1).then(friendliness => {
+                dao.updateFriendliness(msg.author.id, msg.guild.id, 1).then(friendliness => {
                     msg.channel.send(tools.randomHelloReact(friendliness)).then(res=>{
 
                         hasSaidHelloRecently.push(msg.author.id);
@@ -63,16 +63,12 @@ function reactToMessage(client, msg) {
     }
 }
 
-function sayWithDelay(textToSay, channel){
+async function sayWithDelay(textToSay, channel){
     setTimeout(function(){
-        channel.stopTyping();
+        return channel.send(textToSay);
     }, textToSay.length * 150);
-    return channel.startTyping().then(function(res){
-        return channel.send(textToSay).then(function(res){
-            return res;
-        });
-    });
-
+    let res = await channel.sendTyping();
+    return res;
 }
 
 module.exports = {

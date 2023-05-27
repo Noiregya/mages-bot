@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <title>MAGES. bot</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,69 +7,261 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-body,h1 {font-family: "Raleway", Arial, sans-serif}
-h1 {letter-spacing: 6px}
-.w3-row-padding img {margin-bottom: 12px}
+  body,
+  h1 {
+    font-family: "Raleway", Arial, sans-serif
+  }
+
+  h1 {
+    letter-spacing: 6px
+  }
+
+  .mB-row-padding img {
+    margin-bottom: 12px
+  }
 </style>
+
 <body>
+  <div class='wrapper'>
+  <img src='./just-tree.png' id="layer1" class="parallax-layer layer1"/>
+  <img src='./leaves.png' id="layer3" class="parallax-layer layer3"/>
+  <img src='./just-MAGES..png' id="layer2" class="parallax-layer layer2"/>
+  <script>
 
-<!-- !PAGE CONTENT! -->
-<div class="w3-content" style="max-width:1500px">
+    const perspective = 2;
+    function calculateAlign(image, z, scale){
+      let ww = window.innerWidth;
+      let wh = window.innerHeight;
+      let res = {};
+      let depthOffsetW = ww/perspective*z/2;
+      let depthOffsetH = ww/perspective*z/2;
+      let scaleOffsetW = image.width*(1-scale)/2;
+      let scaleOffsetH = image.height*(1-scale)/2;
+      res.x = depthOffsetW - scaleOffsetW;
+      res.y = depthOffsetH - scaleOffsetH + ((wh - ww)*(z/perspective)/2); //Correct aspect ratio issues
+      return res;
+    }
 
-<!-- Header -->
-<header class="w3-panel w3-center w3-opacity" style="padding:128px 16px">
-  <h1 class="w3-xlarge">ENLIGHTED BOT</h1>
-  <h1>MAGES.</h1>
+    function alignBackground(){
 
-  <div class="w3-padding-32">
-    <div class="w3-bar w3-border">
-      <a href="#" class="w3-bar-item w3-button w3-light-grey">Home</a>
-      <!--<a href="#" class="w3-bar-item w3-button w3-light-grey">Portfolio</a> -->
-      <a href="documentation.html" class="w3-bar-item w3-button">Documentation</a>
-      <!-- <a href="#" class="w3-bar-item w3-button w3-hide-small">Weddings</a> -->
+      const [z1,z2,z3] = [-5, -1, -0.5];
+      const [s1,s2,s3] = [1.8, 0.5, 0.6];
+
+      let lay1 = document.getElementById("layer1");
+      let offset1 = calculateAlign(lay1, z1, s1);
+      lay1.style.transform = `translate3d(${offset1.x}px,${offset1.y}px,${z1}px) scale(${s1})`;
+
+      let lay2 = document.getElementById("layer2");
+      let offset2 = calculateAlign(lay2, z2, s2);
+      lay2.style.transform = `translate3d(${offset2.x - 600 + window.innerWidth*0.3}px,${offset2.y}px,${z2}px) scale(${s2})`; //Adjust the character with the width
+
+      let lay3 = document.getElementById("layer3");
+      let offset3 = calculateAlign(lay3, z3, s3);
+      lay3.style.transform = `translate3d(${offset3.x}px,${offset3.y}px,${z3}px) scale(${s3})`;
+
+    }
+    window.onload = alignBackground;
+    window.onresize = alignBackground;
+  </script>
+
+  {TOAST}
+  <script>
+    // Get the snackbar DIV
+    var toast = document.getElementById("toast");
+    if(toast){
+      toast.className = "show";
+      setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 5000);
+    } 
+    var openDialog = function(uri, name, options, closeCallback) {
+      var win = window.open(uri, name, options);
+      var interval = window.setInterval(function() {
+        try {
+            if (win == null || win.closed) {
+                window.clearInterval(interval);
+                location.reload();
+            }
+          }
+          catch (e) {
+          }
+      }, 1000);
+      return win;
+    };
+    function showPage(pageName) {
+      hideAll();
+      // Show the current tab, and add an "active" class to the button that opened the tab
+      document.getElementById(pageName).style.display = "block";
+      let button = document.getElementsByClassName(pageName)[0];
+      button.className += " mB-light-grey";
+    }
+
+    function toggleGuild(guildId) {
+      if(!guildId)
+        return;
+      tabcontent = document.getElementsByClassName("oneguild");
+      //Hide all the guilds
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      //Display the guild
+      document.getElementById(guildId).style.display = "block";
+    }
+
+    function showError() {
+      hideAll();
+      document.getElementById("error").style.display = "block";
+      document.getElementById("tabbar").style.display = "none";
+    }
+
+    function hideAll() {
+      var i, tabcontent, tablinks;
+
+      // Get all elements with class="tabcontent" and hide them
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+
+      // Get all elements with class="tablinks" and remove the class "active"
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        console.log(tablinks[i].className);
+        tablinks[i].className = tablinks[i].className.replace(" mB-light-grey", "");
+      }
+    }
+
+  </script>
+  <!-- !PAGE CONTENT! -->
+  <div class="mB-content">
+    <div class="account">{AUTHENTIFICATION_BLOCK}</div>
+    <!-- Header -->
+    <header class="mB-panel mB-center mB-opacity" style="padding:8px 16px; pointer-events: none">
+      <h1 class="mB-xlarge">ENLIGHTENED BOT</h1>
+      <h1>MAGES.</h1>
+
+      <div class="mB-padding-32" style="pointer-events: auto;">
+        <div class="mB-bar mB-border" id="tabbar">
+          <button class="home tablinks mB-bar-item mB-button mB-light-grey"
+            onclick="showPage(event.target.className.split(' ')[0])">Home</button>
+          <button class="settings tablinks mB-bar-item mB-button"
+            onclick="showPage(event.target.className.split(' ')[0])">My
+            Settings</button>
+          <button class="documentation tablinks mB-bar-item mB-button"
+            onclick="showPage(event.target.className.split(' ')[0])">Documentation</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="tabcontent" id="home">
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
+
+        <div class="content-block">
+          <h3>Greetings, I'm MAGES. the mad magician.</h3>
+          <div class="documentation_block">I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control
+          Discord.</div>
+          <h4>Invite link:</h4>
+          <a href="{INVITE_LINK}" target="_blank"><img src="MAGES-tacoma.png" alt="invite link" height="250px"></a>
+        </div>
+      </div>
     </div>
+    <!-- End 
+       Content -->
+
+    <div class="tabcontent" id="settings" style="display:none">
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
+
+        <div class="content-block">
+          {ADMIN_FORMS}
+        </div>
+      </div>
+    </div>
+    <!-- End Page Content -->
+
+    <div class="tabcontent" id="documentation" style="display:none">
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
+        <div class="content-block">
+          <h3>Features</h3>
+          <h4>Webpage configuration</h4>
+          <div class="documentation_block">No pesky commands! A web UI is available for server administration. You will be able to connect securely and manage any servers MAGES. has joined from there.</div>
+          <h4>Nation picker</h4>
+            <div class="documentation_block">Role picker messages can be generated, pick which channel will be your info channel then add any number of roles (called nations) for users to choose from! For every nation you are able to configure the name, a short description, a thumbnail, and the discord role to which it must be attached. Two types of nations exist:
+              <ul><li>Open nations, members can pick any number of those.</li>
+              <li>Exclusive nations, members may only join one at once, when they join a new nation, they are removed from the previous one. A summary will keep track of each exclusive nation's popularity!</li></ul>
+              </div>
+          <h4>Welcome member</h4>
+            <div class="documentation_block">MAGES. can welcome user with fun flavour messages.</div>
+          <h4>Notifications</h4>
+            <div class="documentation_block">MAGES. will send messages to moderators who opt in when members join, leave, and when the raid protection is enabled. Opting in and out is done with the /whitelist command.</div>
+          <h4>Mute and Raid protection</h4>
+            <div class="documentation_block">A mute role can be given to or removed from members easily by mods simply by right clicking on a member and going to "apps">"toggle mute". A raid protection can be enabled where every member will be muted on join and mods will be notified so they can decide what to do. 
+              Members whose account is too young will alwyas be muted on join. Members whose naime contain URLs will be banned on</div>
+          <h3>Command list:</h3>
+          <h4>Admin commands</h4>
+          <table class="mB-table documentation_block">
+            <tr>
+              <td>
+                /register</td><td>Updates the command list with the latest
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /menu </td><td>Regenerate the nation picker messages
+              </td>
+            </tr>
+          </table>
+          <h4>Moderator commands</h4>
+          <table class="mB-table documentation_block">
+            <tr>
+              <td>
+                /mute </td><td>List all users muted by MAGES.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /parrot </td><td>Use the bot to say a message in a specific channel
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /preban</td><td>Takes a user ID, bans a user automatically when they join
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /unban</td><td>Removes user from the list of users to ban on join
+              </td>
+            </tr>
+            <tr>
+              <td>
+                /whitelist</td><td>Toggle direct message notification from MAGES.
+              </td>
+            </tr>
+          </table>
+          <h4>Public commands</h4>
+          <table class="mB-table documentation_block">
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- End Page Content -->
+
+
+    <div class="tabcontent" id="error" style="display:none">
+      <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
+
+        <div class="content-block">
+          {ERROR_BLOCK}
+          <a href="/">Take me back home</a>
+        </div>
+      </div>
+    </div>
+    <!-- End Page Content -->
+
+    <!-- Footer -->
+    <footer class="mB-container mB-padding-64 mB-center mB-large">
+      <a href="https://github.com/Noiregya/mages-bot" target="_blank">Open source project under the MIT License.</a> Author: Noiregya. <a href="https://www.nimbaterra.com/" target="_blank">Art by Tacoma</a>
+    </footer>
+    {LOAD_PAGE}
   </div>
-</header>
-
-<!-- Photo Grid -->
-<div class="w3-row-padding" style="margin-bottom:128px"> <!--  w3-grayscale -->
-  <div class="w3-half">
-    <img class="mages-image" src="./MAGES.-body.png" style="width:100%">
-    <!-- <img src="/w3images/wedding.jpg" style="width:100%">
-    <img src="/w3images/rocks.jpg" style="width:100%">
-    <img src="/w3images/falls2.jpg" style="width:100%">
-    <img src="/w3images/paris.jpg" style="width:100%">
-    <img src="/w3images/nature.jpg" style="width:100%">
-    <img src="/w3images/mist.jpg" style="width:100%">
-    <img src="/w3images/paris.jpg" style="width:100%">-->
   </div>
-
-  <div class="w3-half">
-    <h3>Greetings, I'm MAGES. the mad magician.</h3>
-		I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control Discord.<br />
-		<h4>Invite link:</h4>
-		MAGES. is currently not public, please be patient.
-  <!-- <img src="/w3images/ocean.jpg" style="width:100%">
-    <img src="/w3images/wedding.jpg" style="width:100%">
-    <img src="/w3images/mountainskies.jpg" style="width:100%">
-    <img src="/w3images/rocks.jpg" style="width:100%">
-    <img src="/w3images/underwater.jpg" style="width:100%">
-  </div> -->
-</div>
-
-<!-- End Page Content -->
-</div>
-
-<!-- Footer -->
-<footer class="w3-container w3-padding-64 w3-light-grey w3-center w3-large">
-  <!-- <i class="fa fa-facebook-official w3-hover-opacity"></i>
-  <i class="fa fa-instagram w3-hover-opacity"></i>
-  <i class="fa fa-snapchat w3-hover-opacity"></i>
-  <i class="fa fa-pinterest-p w3-hover-opacity"></i>
-  <i class="fa fa-twitter w3-hover-opacity"></i>
-  <i class="fa fa-linkedin w3-hover-opacity"></i> -->
-  <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank" class="w3-hover-text-green">w3.css</a></p>
-</footer>
-
 </body>
 </html>

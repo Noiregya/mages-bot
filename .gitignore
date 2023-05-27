@@ -1,0 +1,9 @@
+node_modules/*
+package-lock.json
+.DS_Store
+run.sh
+run.bat
+version_flag
+ssl/*
+logs/*
+client_certs.zip
