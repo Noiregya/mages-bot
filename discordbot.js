@@ -130,7 +130,8 @@ client.on('ready', function () {
         const guilds = await client.guilds.fetch();
         for(guild of guilds){
             const fetchedGuild = await client.guilds.fetch(guild[0]);
-            console.log(await business.updateNationShares(fetchedGuild));
+            let res = await business.updateNationShares(fetchedGuild);
+            //console.log(res);
         }
     }
 
