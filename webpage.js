@@ -158,7 +158,7 @@ function generateNationHtml(name, description, thumbnail, color, roles, currentR
           <div>Name<input class="mB-input" name="name" value="${name ? name: ''}" required></div>
           <div>Description<input class="mB-input" name="description" value="${description ? description : ''}"></div>
           <div>Thumbnail<input class="mB-input" name="thumbnail" value="${thumbnail ? thumbnail : ''}"></div>
-          <div>Role<select class="mB-input" name="role" required>
+          <div>Mute role<select class="mB-input" name="role" required>
           <option value="">--Please choose an option--</option>`; 
           if(roles){
             roles.forEach(role => {
@@ -607,6 +607,7 @@ app.get('/', isAuthenticated, async (req, response, next) => {
           toggleGuild("${req.session.currentGuild}");
         </script>` : '')
       .replace(/{ADMIN_FORMS}/g, adminForms)
+      .replace(/{INVITE_LINK}/g, inviteLink)
       .replace(/{TOAST}/g, req.session.wasUpdated ? `<div id="toast">Guild ${req.session.wasUpdated} updated</div>` : '');
       req.session.wasUpdated = undefined;
       req.session.save(function(err){

@@ -156,10 +156,10 @@
 
         <div class="content-block">
           <h3>Greetings, I'm MAGES. the mad magician.</h3>
-          I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control
-          Discord.<br>
+          <div class="documentation_block">I pocess the knowledge of the world's most darkest secret. Join me and i'll show you how to control
+          Discord.</div>
           <h4>Invite link:</h4>
-          MAGES. is currently not public, please be patient.
+          <a href="{INVITE_LINK}" target="_blank"><img src="MAGES-tacoma.png" alt="invite link" height="250px"></a>
         </div>
       </div>
     </div>
@@ -179,9 +179,24 @@
     <div class="tabcontent" id="documentation" style="display:none">
       <div class="mB-row-padding" style="margin-bottom:128px"> <!--  mB-grayscale -->
         <div class="content-block">
+          <h3>Features</h3>
+          <h4>Webpage configuration</h4>
+          <div class="documentation_block">No pesky commands! A web UI is available for server administration. You will be able to connect securely and manage any servers MAGES. has joined from there.</div>
+          <h4>Nation picker</h4>
+            <div class="documentation_block">Role picker messages can be generated, pick which channel will be your info channel then add any number of roles (called nations) for users to choose from! For every nation you are able to configure the name, a short description, a thumbnail, and the discord role to which it must be attached. Two types of nations exist:
+              <ul><li>Open nations, members can pick any number of those.</li>
+              <li>Exclusive nations, members may only join one at once, when they join a new nation, they are removed from the previous one. A summary will keep track of each exclusive nation's popularity!</li></ul>
+              </div>
+          <h4>Welcome member</h4>
+            <div class="documentation_block">MAGES. can welcome user with fun flavour messages.</div>
+          <h4>Notifications</h4>
+            <div class="documentation_block">MAGES. will send messages to moderators who opt in when members join, leave, and when the raid protection is enabled. Opting in and out is done with the /whitelist command.</div>
+          <h4>Mute and Raid protection</h4>
+            <div class="documentation_block">A mute role can be given to or removed from members easily by mods simply by right clicking on a member and going to "apps">"toggle mute". A raid protection can be enabled where every member will be muted on join and mods will be notified so they can decide what to do. 
+              Members whose account is too young will alwyas be muted on join. Members whose naime contain URLs will be banned on</div>
           <h3>Command list:</h3>
           <h4>Admin commands</h4>
-          <table class="mB-table">
+          <table class="mB-table documentation_block">
             <tr>
               <td>
                 /register</td><td>Updates the command list with the latest
@@ -194,7 +209,7 @@
             </tr>
           </table>
           <h4>Moderator commands</h4>
-          <table class="mB-table">
+          <table class="mB-table documentation_block">
             <tr>
               <td>
                 /mute </td><td>List all users muted by MAGES.
@@ -207,7 +222,7 @@
             </tr>
             <tr>
               <td>
-                /preban</td><td>Takes a user ID, bans a user when they join
+                /preban</td><td>Takes a user ID, bans a user automatically when they join
               </td>
             </tr>
             <tr>
@@ -217,12 +232,12 @@
             </tr>
             <tr>
               <td>
-                /whitelist</td><td>Toggle receiving DMs from the MAGES.
+                /whitelist</td><td>Toggle direct message notification from MAGES.
               </td>
             </tr>
           </table>
           <h4>Public commands</h4>
-          <table class="mB-table">
+          <table class="mB-table documentation_block">
           </table>
         </div>
       </div>
@@ -243,6 +258,7 @@
 
     <!-- Footer -->
     <footer class="mB-container mB-padding-64 mB-center mB-large">
+      <a href="https://github.com/Noiregya/mages-bot" target="_blank">Open source project under the MIT License.</a> Author: Noiregya. <a href="https://www.nimbaterra.com/" target="_blank">Art by Tacoma</a>
     </footer>
     {LOAD_PAGE}
   </div>

@@ -8,7 +8,7 @@ legend{color:inherit;display:table;max-width:100%;padding:0;white-space:normal}t
 html,body{font-family:Verdana,sans-serif;font-size:15px;line-height:1.5}html{overflow-x:hidden}
 h1{font-size:36px}h2{font-size:30px}h3{font-size:24px}h4{font-size:20px}h5{font-size:18px}h6{font-size:16px}.mB-serif{font-family:serif}
 h1,h2,h3,h4,h5,h6{font-family:"Segoe UI",Arial,sans-serif;font-weight:400;margin:10px 0}.mB-wide{letter-spacing:4px}
-h3,h4{color:#7e7e7e}
+h3,h4{color:#0061b2}
 code{font-family:monospace,monospace;font-size:1em}
 button,html [type=button],[type=reset],[type=submit]{-webkit-appearance:button}
 [type=checkbox],[type=radio]{width:2.5em}
@@ -32,6 +32,12 @@ button,html [type=button],[type=reset],[type=submit]{-webkit-appearance:button}
 .mB-bar .mB-button{white-space:normal}
 .mB-bar .mB-bar-item{padding:8px 16px;float:left;width:auto;border:none;display:block;outline:0}
 .mB-input{padding:8px;display:block;border:none;border-bottom:1px solid #ccc}
+
+.documentation_block{
+    background-color: #c3ceffd4;
+    padding: 4px;
+    border-radius: 4px;
+}
 
 /*Custom CSS*/
 .content-block{
