@@ -129,7 +129,7 @@ function updateGuild(body){
     }
     let nations = [];
     let deleted = [];
-    if(body.role && body.name){
+    if(body.role.length>0 && body.name.length>0){
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
