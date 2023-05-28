@@ -40,13 +40,17 @@ Set the environment variable:
 * OWNER: Discord snowflake of the owner of this instance of MAGES.
 * TOKEN: The token of the bot
 * DATABASE_STRING: Connection string for the postgresql database (postgres://\[user\]@\[domain\]:\[port\]/\[database\])
-* SSL_DIRECTORY: Directory where MAGES. SSL certificates are stored used for database secured authentification and for the webpage
+* ssl: SSL certificates are used for database secured authentification and for the webpage
+ * SSL_KEY: SSL Client Private Key path
+ * SSL_CERT: SSL Client Certificate path
+ * CA_CERT: Certificate Authority path
 * WEBPORT: Port for the local webserver (default 80)
 * oAuth2
  * APPLICATION_ID: ID of your discord app
  * APPLICATION_SECRET: Secret of your discord app
  * PUBLIC_KEY: Public key of your discord app
 * COOKIE_SECRET: Secret string to authentify cookies
+
 Run the command `npm run start`
 
 ## SSL Configuration
