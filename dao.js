@@ -8,9 +8,9 @@ const config = {
     // this object will be passed to the TLSSocket constructor
     ssl: {
         rejectUnauthorized: false,
-        ca: fs.readFileSync(ssl_directory + '/root.cer').toString(),
-        key: fs.readFileSync(ssl_directory + '/client.key').toString(),
-        cert: fs.readFileSync(ssl_directory + '/client.cer').toString(),
+        ca: fs.readFileSync(process.env.CA_CERT).toString(),
+        key: fs.readFileSync(process.env.SSL_KEY).toString(),
+        cert: fs.readFileSync(process.env.SSL_CERT).toString(),
     },
 }
 
