@@ -25,7 +25,7 @@
   <div class='wrapper'>
   <img src='./just-tree.png' id="layer1" class="parallax-layer layer1"/>
   <img src='./leaves.png' id="layer3" class="parallax-layer layer3"/>
-  <img src='./just-MAGES..png' id="layer2" class="parallax-layer layer2"/>
+  <img src='./magesReference.png' id="layer2" class="parallax-layer layer2"/>
   <script>
 
     const perspective = 2;
@@ -53,7 +53,7 @@
 
       let lay2 = document.getElementById("layer2");
       let offset2 = calculateAlign(lay2, z2, s2);
-      lay2.style.transform = `translate3d(${offset2.x - 600 + window.innerWidth*0.3}px,${offset2.y}px,${z2}px) scale(${s2})`; //Adjust the character with the width
+      lay2.style.transform = `translate3d(${offset2.x - 100 + window.innerWidth*0.3}px,${offset2.y}px,${z2}px) scale(${s2})`; //Adjust the character with the width
 
       let lay3 = document.getElementById("layer3");
       let offset3 = calculateAlign(lay3, z3, s3);
@@ -136,7 +136,7 @@
     <!-- Header -->
     <header class="mB-panel mB-center mB-opacity" style="padding:8px 16px; pointer-events: none">
       <h1 class="mB-xlarge">ENLIGHTENED BOT</h1>
-      <h1>MAGES.</h1>
+      <h1>MAGES. beta</h1>
 
       <div class="mB-padding-32" style="pointer-events: auto;">
         <div class="mB-bar mB-border" id="tabbar">
