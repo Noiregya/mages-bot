@@ -53,8 +53,7 @@ function init(discordClient) {
   }
   
 }
-
-
+app.set('trust proxy', 'loopback');
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(limiter);
 
