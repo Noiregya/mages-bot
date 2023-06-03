@@ -640,6 +640,7 @@ app.get('/', async (req, response, next) => {
       var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state), getAuthUrl(fullUrl)))
         .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
         .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot')
+        .replace(/{INVITE_LINK}/g, inviteLink)
         .replace(/{TOAST}/g, '');
       return response.send(result);
     });
