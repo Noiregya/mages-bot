@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const http = require("http");
 const https = require("https");
 const express = require('express');
 const session = require('express-session');
@@ -13,8 +14,8 @@ const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
 const cookieSecret = process.env.COOKIE_SECRET;
-const sslDirectory = process.env.SSL_DIRECTORY;
 const inviteLink = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=1237219404868&scope=bot`;
+
 
 const root = __dirname + '/www/';
 const index = 'index.html';
@@ -31,20 +32,26 @@ function getAuthUrl(localUrl){
 let client;
 function init(discordClient) {
   client = discordClient;
-  //Start server
-  https
-  .createServer(
-		// Provide the private and public key to the server by reading each
-		// file's content with the readFileSync() method.
-    {
-      key: fs.readFileSync(process.env.SSL_KEY),
-      cert: fs.readFileSync(process.env.SSL_CERT),
-    },
-    app
-  )
-  .listen(port, () => {
-    console.log(`The website is running on port ${port}`);
-  });
+  if(process.env.SSL_CERT){
+    https
+    .createServer(
+      // Provide the private and public key to the server by reading each
+      // file's content with the readFileSync() method.
+      {
+        key: fs.readFileSync(process.env.SSL_KEY),
+        cert: fs.readFileSync(process.env.SSL_CERT),
+      },
+      app
+    )
+    .listen(port, () => {
+      console.log(`The website is running on port ${port}`);
+    });
+  }else{
+    app.listen(port, () => {
+      console.log(`The website is running unsecured on port ${port}`);
+    });
+  }
+  
 }
 
 
