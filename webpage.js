@@ -390,8 +390,9 @@ app.get('/login', function (req, res, next) {
   //Checks for clickjacking
   if (req.session.state !== req.query.state)
     return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
+  let fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;  
   //Attempts to connect to discord API
-  connect(req.query.code, req.headers.host).then(function (user) {
+  connect(req.query.code, fullUrl).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
@@ -469,8 +470,8 @@ fs.readdirSync(root).forEach(file => {
   }
 });
 
-async function getDiscordToken(code, host) {//TODO: Change for https?
-  let redirect_uri = `https://${host}/login`;
+async function getDiscordToken(code, url) {//TODO: Change for https?
+  let redirect_uri = `${url}/login`;
   //Get the token from Discord
   const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
     method: 'POST',
@@ -543,9 +544,9 @@ async function getDiscordGuilds(oAuthData) {
 }
 
 //Connect to discord by getting the token then the user object
-async function connect(code, host) {
+async function connect(code, url) {
   if (code) {
-    let oAuthData = await getDiscordToken(code, host).catch(err => {
+    let oAuthData = await getDiscordToken(code, url).catch(err => {
       throw errorContext(err, 'Unable to get discord token with code ' + code);
     });
     if (oAuthData) {
