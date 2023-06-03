@@ -53,8 +53,7 @@ function init(discordClient) {
   }
   
 }
-
-
+app.set('trust proxy', 'loopback');
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(limiter);
 
@@ -391,8 +390,9 @@ app.get('/login', function (req, res, next) {
   //Checks for clickjacking
   if (req.session.state !== req.query.state)
     return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
+  let fullHost = req.protocol + '://' + req.get('host');
   //Attempts to connect to discord API
-  connect(req.query.code, req.headers.host).then(function (user) {
+  connect(req.query.code, fullHost).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
@@ -471,7 +471,7 @@ fs.readdirSync(root).forEach(file => {
 });
 
 async function getDiscordToken(code, host) {//TODO: Change for https?
-  let redirect_uri = `https://${host}/login`;
+  let redirect_uri = `${host}/login`;
   //Get the token from Discord
   const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
     method: 'POST',
