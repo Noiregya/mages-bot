@@ -3,16 +3,25 @@ const fs = require('fs');
 
 const ssl_directory = process.env.SSL_DIRECTORY;
 
-const config = {
-    connectionString: process.env.DATABASE_STRING,
-    // this object will be passed to the TLSSocket constructor
-    ssl: {
-        rejectUnauthorized: false,
-        ca: fs.readFileSync(process.env.CA_CERT).toString(),
-        key: fs.readFileSync(process.env.SSL_KEY).toString(),
-        cert: fs.readFileSync(process.env.SSL_CERT).toString(),
-    },
+let config;
+
+if(process.env.CA_CERT){
+    config = {
+        connectionString: process.env.DATABASE_STRING,
+        // this object will be passed to the TLSSocket constructor
+        ssl: {
+            rejectUnauthorized: false,
+            ca: fs.readFileSync(process.env.CA_CERT).toString(),
+            key: fs.readFileSync(process.env.SSL_KEY).toString(),
+            cert: fs.readFileSync(process.env.SSL_CERT).toString(),
+        },
+    }
+} else{
+    config = {
+        connectionString: process.env.DATABASE_STRING
+    }
 }
+
 
 const pool = new Pool(config);
 pool

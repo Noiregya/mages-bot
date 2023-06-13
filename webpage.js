@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const http = require("http");
 const https = require("https");
 const express = require('express');
 const session = require('express-session');
@@ -13,8 +14,8 @@ const port = process.env.WEBPORT || 80;
 const clientId = process.env.APPLICATION_ID;
 const clientSecret = process.env.APPLICATION_SECRET;
 const cookieSecret = process.env.COOKIE_SECRET;
-const sslDirectory = process.env.SSL_DIRECTORY;
 const inviteLink = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=1237219404868&scope=bot`;
+
 
 const root = __dirname + '/www/';
 const index = 'index.html';
@@ -31,23 +32,28 @@ function getAuthUrl(localUrl){
 let client;
 function init(discordClient) {
   client = discordClient;
-  //Start server
-  https
-  .createServer(
-		// Provide the private and public key to the server by reading each
-		// file's content with the readFileSync() method.
-    {
-      key: fs.readFileSync(process.env.SSL_KEY),
-      cert: fs.readFileSync(process.env.SSL_CERT),
-    },
-    app
-  )
-  .listen(port, () => {
-    console.log(`The website is running on port ${port}`);
-  });
+  if(process.env.SSL_CERT){
+    https
+    .createServer(
+      // Provide the private and public key to the server by reading each
+      // file's content with the readFileSync() method.
+      {
+        key: fs.readFileSync(process.env.SSL_KEY),
+        cert: fs.readFileSync(process.env.SSL_CERT),
+      },
+      app
+    )
+    .listen(port, () => {
+      console.log(`The website is running on port ${port}`);
+    });
+  }else{
+    app.listen(port, () => {
+      console.log(`The website is running unsecured on port ${port}`);
+    });
+  }
+  
 }
-
-
+app.set('trust proxy', 'loopback');
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(limiter);
 
@@ -158,7 +164,7 @@ function generateNationHtml(name, description, thumbnail, color, roles, currentR
           <div>Name<input class="mB-input" name="name" value="${name ? name: ''}" required></div>
           <div>Description<input class="mB-input" name="description" value="${description ? description : ''}"></div>
           <div>Thumbnail<input class="mB-input" name="thumbnail" value="${thumbnail ? thumbnail : ''}"></div>
-          <div>Mute role<select class="mB-input" name="role" required>
+          <div>Role<select class="mB-input" name="role" required>
           <option value="">--Please choose an option--</option>`; 
           if(roles){
             roles.forEach(role => {
@@ -267,7 +273,7 @@ async function generateAdminForms(userGuilds, salt) {
       res += `</select></div>
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
-              <div>Role<select class="mB-input" name="mute_role" required>
+              <div>Mute role<select class="mB-input" name="mute_role">
               <option value="">--Please choose an option--</option>`; 
               let currentRole = guildWithChannel.properties.mute_role;
               if(guildWithChannel.roles){
@@ -384,8 +390,9 @@ app.get('/login', function (req, res, next) {
   //Checks for clickjacking
   if (req.session.state !== req.query.state)
     return next(errorContext({ name: 'incorrectToken', message: 'at webpage.connect' }, 'You may have been clickjacked', 'generated: ' + req.session.state + ' provided: ' + req.query.state));
+  let fullHost = req.protocol + '://' + req.get('host');
   //Attempts to connect to discord API
-  connect(req.query.code, req.headers.host).then(function (user) {
+  connect(req.query.code, fullHost).then(function (user) {
     //Prevent session fixing attacks
     req.session.regenerate(function (err) {
       if (err) {
@@ -464,7 +471,7 @@ fs.readdirSync(root).forEach(file => {
 });
 
 async function getDiscordToken(code, host) {//TODO: Change for https?
-  let redirect_uri = `https://${host}/login`;
+  let redirect_uri = `${host}/login`;
   //Get the token from Discord
   const tokenResponseData = await request('https://discord.com/api/oauth2/token', {
     method: 'POST',
@@ -633,6 +640,7 @@ app.get('/', async (req, response, next) => {
       var result = data.replace(/{AUTHENTIFICATION_BLOCK}/g, authentificationBlock(encodeURIComponent(req.session.state), getAuthUrl(fullUrl)))
         .replace(/{LOAD_PAGE}/g, req.session.page ? '<script>showPage("' + req.session.page + '")</script>' : '')
         .replace(/{ADMIN_FORMS}/g, 'Please connect with discord to manage the bot')
+        .replace(/{INVITE_LINK}/g, inviteLink)
         .replace(/{TOAST}/g, '');
       return response.send(result);
     });

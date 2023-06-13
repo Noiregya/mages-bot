@@ -117,7 +117,7 @@ function updateGuild(body){
             muteRole:body.mute_role || 0,
             frozen:body.frozen === 'true'};
     if(!isValid)
-        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+        throw {name: 'invalidInputException', message: 'One of the elements in the server configuration is illegal'};
     //Turn values into arrays if they aren't
     if(!Array.isArray(body.role)){
         body.role = [body.role];
@@ -129,7 +129,9 @@ function updateGuild(body){
     }
     let nations = [];
     let deleted = [];
-    if(body.role && body.name){
+    let a = body.role[0];
+
+    if(body.role[0] && body.name[0]){
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
@@ -155,7 +157,7 @@ function updateGuild(body){
         if(deleted.length>0)
             dao.removeNations(body.guild, deleted);
     }else{
-        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+        throw {name: 'invalidInputException', message: 'One of the elements in the nation configuration is illegal'};
     }
 }
 
@@ -172,7 +174,7 @@ async function register(interaction){
     }
 }
 
-async function updateMenu(interaction){ //Interactions totally broken
+async function updateMenu(interaction){ 
     let errors  = [];
     if (!interaction.inGuild())
         return 'This command is only usable in a guild';
@@ -256,6 +258,7 @@ async function updateNationShares(guild, options){
         return 'The information channel couldn\'t be fetched, was it deleted?';
     //Get existing share message
     messages = await dao.getMessages(guild.id, 'shares');
+
     let shareMessage;
     if(messages.rows.length > 0){
         let messageChannel = await guild.channels.fetch(messages.rows[0].channel).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
@@ -265,7 +268,10 @@ async function updateNationShares(guild, options){
                 await shareMessage.delete().catch(err=>{errors.push(tools.errorContext(err, ' at updateNationShares'))})
         }
     }
+
+    //Generate the new share message
     let shareRes = await generateNationShares(guild).catch(err=>{errors.push(tools.errorContext(err, 'at updateNationShares'))});
+
     let sentSareMessage;
     if(shareMessage && !options.toDelete)
         sentSareMessage = await shareMessage.edit({embeds: [shareRes]}).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
@@ -282,24 +288,37 @@ async function updateNationShares(guild, options){
 async function generateNationShares(guild){
     let nations = await dao.getNations(guild.id).catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
     let members = await guild.members.fetch().catch(err => errors.push(tools.errorContext(err, 'at updateNationShares')));
+        
     if(!nations || !members)
         return new Error('Couldn\'t fetch everything needed for nation shares');
     //let shares = [];
     let total = 0;
+    let anything = false;
     for(i=0; i< nations.rows.length; i++){
-        if(nations.rows[i].isunique)
+        if(nations.rows[i].isunique){
             nations.rows[i].number = 0;
-    }
-    members.forEach(member => {
-        for(i=0; i<nations.rows.length; i++){
-            const role = member.roles.resolve(nations.rows[i].role);
-            if(role && nations.rows[i].isunique){
-                nations.rows[i].number += 1;
-                total += 1;
-                break;
-            }
+            anything = true;
         }
-    });
+            
+    }
+    if(anything){
+        members.forEach(member => {
+            for(i=0; i<nations.rows.length; i++){
+                const role = member.roles.resolve(nations.rows[i].role);
+                if(role && nations.rows[i].isunique){
+                    nations.rows[i].number += 1;
+                    total += 1;
+                    break;
+                }
+            }
+        });
+    }
+    if(!total)//No nation or users in nations
+        return {
+            color: 0x7F20AF,
+            title: 'Create and join nations to see shares!',
+            timestamp: new Date().toISOString()
+        };
     let fieldsArray = [];
     for(nationShare of nations.rows){
         if(nationShare.isunique){
@@ -319,14 +338,14 @@ async function generateNationShares(guild){
 }
 
 /**
- * Make a user join a nation (and leave other unique nations)
+ * Make a user join or leave a nation (and leave other unique nations)
  * @param {*} interaction
  */
-async function joinNation(interaction){
+async function toggleNation(interaction){
     let errors = [];
-    let res = 'Joined nation: ';
+    let res = 'Nation left!';
     let clickedRole = interaction.customId.split('_')[1];
-    let roles = await interaction.member.roles;//.resolve();//fetch().catch(err=> errors.push(tools.errorContext(err,'at joinNation')));
+    let roles = await interaction.member.roles;
     let nations =  await dao.getNations(interaction.guild.id);
     let clickedNation = nations.rows.find(nation => nation.role === clickedRole);
     if(nations.rows.some(nation => nation.role === clickedRole)){
@@ -336,14 +355,16 @@ async function joinNation(interaction){
             if(role){
                 same = same || (clickedRole === role.id);
                 if((nation.isunique && clickedNation.isunique) || same){
-                    roles.remove(nation.role).catch(err=> errors.push(tools.errorContext(err,'at joinNation')));
+                    roles.remove(nation.role).catch(err=> errors.push(tools.errorContext(err,'at toggleNation')));
                     if(same)
                         break;
                 }
             }
         };
-        if(!same)
-            res += await interaction.member.roles.add(clickedRole);
+        if(!same){
+            await interaction.member.roles.add(clickedRole);
+            res = 'Nation joined!' 
+        }
     }
     if(errors.length > 0)
         tools.permissionErrorNotifier(interaction.guild, PermissionsBitField.Flags.Administrator, errors);
@@ -568,7 +589,7 @@ async function unban(interaction){
 }
 
 module.exports = {
-    joinNation: joinNation,
+    toggleNation: toggleNation,
     muteUnmute: muteUnmute,
     muteList: muteList,
     parrot: parrot,

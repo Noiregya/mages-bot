@@ -195,8 +195,9 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.reply({ content: res, ephemeral: true });
                 break;
             case 'menu':
+                await interaction.deferReply({ ephemeral: true });
                 res = await business.updateMenu(interaction);
-                await interaction.reply({ content: res, ephemeral: true });
+                await interaction.editReply({ content: res});
                 break;
         }
     } else if (interaction.isUserContextMenuCommand()) {
@@ -216,10 +217,10 @@ client.on(Events.InteractionCreate, async interaction => {
         let type = interaction.customId.split('_')[0];
         switch(type){
             case 'nation':
-                res = await business.joinNation(interaction);
+                res = await business.toggleNation(interaction);
             break;
         }
-        interaction.reply({ content: res, ephemeral: true }).then(interaction.deleteReply());
+        interaction.reply({ content: res, ephemeral: true });
     }
 
 });
