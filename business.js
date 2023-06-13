@@ -117,7 +117,7 @@ function updateGuild(body){
             muteRole:body.mute_role || 0,
             frozen:body.frozen === 'true'};
     if(!isValid)
-        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+        throw {name: 'invalidInputException', message: 'One of the elements in the server configuration is illegal'};
     //Turn values into arrays if they aren't
     if(!Array.isArray(body.role)){
         body.role = [body.role];
@@ -129,7 +129,9 @@ function updateGuild(body){
     }
     let nations = [];
     let deleted = [];
-    if(body.role.length>0 && body.name.length>0){
+    let a = body.role[0];
+
+    if(body.role[0] && body.name[0]){
         for(let i=0; i < body.role.length; i++){
             if(body.deleted[i] === 'true' ){//TODO: Delete nation
                 deleted.push(body.role[i])
@@ -155,7 +157,7 @@ function updateGuild(body){
         if(deleted.length>0)
             dao.removeNations(body.guild, deleted);
     }else{
-        throw {name: 'invalidInputException', message: 'One of the elements in the form is illegal'};
+        throw {name: 'invalidInputException', message: 'One of the elements in the nation configuration is illegal'};
     }
 }
 

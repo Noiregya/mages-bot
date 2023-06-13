@@ -164,7 +164,7 @@ function generateNationHtml(name, description, thumbnail, color, roles, currentR
           <div>Name<input class="mB-input" name="name" value="${name ? name: ''}" required></div>
           <div>Description<input class="mB-input" name="description" value="${description ? description : ''}"></div>
           <div>Thumbnail<input class="mB-input" name="thumbnail" value="${thumbnail ? thumbnail : ''}"></div>
-          <div>Mute role<select class="mB-input" name="role" required>
+          <div>Role<select class="mB-input" name="role" required>
           <option value="">--Please choose an option--</option>`; 
           if(roles){
             roles.forEach(role => {
@@ -273,7 +273,7 @@ async function generateAdminForms(userGuilds, salt) {
       res += `</select></div>
               <div>Number of stars required<input class="mB-input" name="nb_starboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.nb_star}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
-              <div>Role<select class="mB-input" name="mute_role" required>
+              <div>Mute role<select class="mB-input" name="mute_role">
               <option value="">--Please choose an option--</option>`; 
               let currentRole = guildWithChannel.properties.mute_role;
               if(guildWithChannel.roles){
