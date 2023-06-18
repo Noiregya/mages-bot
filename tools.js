@@ -1,73 +1,6 @@
 const Discord = require('discord.js');
 const dao = require('./dao');
 
-//TODO: Make new website
-const website = "http://mages-bot.alwaysdata.net/";
-
-//TODO: Rewrite help message
-const help = ["List of available commands:"+
-              "\`\`\`.p help - DM this message"+
-              "\n.p help levels - Get explaination about the levels"+
-              "\n.p level - Get your current level"+
-              "\n.p blacklist - Stop receiving bot notifications"+
-              "\n.p whitelist - Receive bot notifications again"+
-              "\n.p snooze (text) (delay) - Reminds you of something in x minutes"+
-              "\n.p summary - Sends you a summary of the current guild"+
-              "\n.p ping - pings the bot\`\`\`",
-              "Level 1 commands"+
-              "\`\`\`.p assign (powerlevel) (@Role) - Gives bot rights to one Role"+
-              "\n.p autoassign (ENABLE|DISABLE) Role - Enable/Disable autoassigning random nation when joining."+
-              "\n.p setActiveRole (@Role) - Sets and enable the role to add to active users."+
-              "\n.p clearActiveRole (@Role) - Disable and unset the role to add to active users."+
-              "\n.p setActiveDelay (Delay) - Set the delay in days for inactivity.\`\`\`",
-              "Level 2 commands"+
-              "\`\`\`.p setInfoChannel (#Channel) - Sets the specified channel to the info channel."+
-              "\n.p setWelcomeChannel (#Channel) - Sets the specified channel to be the welcome channel."+
-              "\n.p setStarboardChannel (#Channel) - Sets the specified channel to be the starboard channel."+
-              "\n.p (createNation|createSecretRoom) (Name) (Desciption) (Thumbnail) [Message_id] - Add the nation/secret room to the database."+
-              "\n.p removeNation (Name) - Remove the nation/secret room from the database."+
-              "\n.p reload - Update the information message"+
-              "\n.p secure (#TagetChannel) [nolast] - Copy the pinned messages of the current channel into the target channel, add nolast to omit the oldest pinned message."+
-              "\n.p clear [@Someone] [#Somewhere] -  Deletes all messages from everyone tagged in all the channels tagged among the 5000 last messages\`\`\`",
-              "Level 3 commands"+
-              "\`\`\`.p mute (add|remove|list) - Add someone to the mute list, people on the mute list are muted upon joining."+
-              "\n.p ban (add|remove|list) - Ban or add someone to the ban list, people on the ban list are banned upon joining."+
-              "\n.p freeze - Give the \"Muted\" role to everyone who has been in the server for less than a day, mute every new person."+
-              "\n.p unfreeze - Stop muting every newcomer in the server, doesn't unmute muted ones."+
-              "\n.p poll (Text) (Delay) - Create a poll on which users can answer with reactions - Text should be either 1 word or in quotes, Delay is the number of minutes before the end of the poll"+
-              "\n.p updateShares - Manually update the share leaderboard."+
-              "\n.p removeInactives - Remove active roles from inactive people."+
-              "\n.p parrot (targetChannel) (message) - Repeats what you write in the target channel.\`\`\`"];
-
-const helpAssign = "\`\`\`"+
-      ".p assign (@Role) (Level) - Gives bot rights to one Role. It will allow the bot to listen to certain commands issued by certain roles. The bot will also send various notifications to people with the right level. The lower the level the stronger the role."+
-      "\nA person with a certain level will inherit all higher roles. If someone has multiple registered roles, the most powerful will be used."+
-      "\nRole - Role to assign a level to - You can either tag the role or type its name. Don't forget the quotes if there's a space in the role's name"+
-      "\nLevel - The level to assign - A natural number between 0 and 99. If something different is entered, it will be replaced with 99."+
-      "\n.p help levels - Informations about the levels"+
-      "\n\`\`\`";
-
-const helpLevels = "\`\`\`Levels are the amount of rights a registered user has. A lower level can do everything a higher level does."+
-      "\nThe server Owner will always be considered as a level 1 even if they don't have any registered role."+
-      "\nLevel 0  - Bot owner - Can do everything and will be notified about technical things"+
-      "\nLevel 1  - Server Owner - Can do powerful commands and receive information on most stuff happening in the server"+
-      "\nLevel 2  - Administrator - Can do some server management commands and receive information on management"+
-      "\nLevel 3  - Moderator - Can do moderation commands and receive basic server logs"+
-      "\nLevel 98 - Informated user - Can receive basic server info"+
-      "\nLevel 99 - Mr Nobody - Useless, could not be registered for what I care.\`\`\`";
-
-const helpCreateNation = "Help for CreateNation:\n"+
-      "\`\`\`Allows adding a nation to the database, so the nation role can be joined by reacting to the welcome message\n"+
-      ".p createNation (Name) (Desciption) (Thumbnail) [Message_id]\n"+
-      'Choose between "createNation" and "createSecretRoom". The first will create a unique auto assign role, meaning you can only have one at a time. The other has no restrictions.\n'+
-      "Name: Name of the nation, needs a role that has the same name to exists\n"+
-      'Desciption: Desciption of the nation, use double quotes around it (") if there are spaces\n'+
-      "Thumbnail: url of the thumbnail for the nation\n"+
-      "Message_id: id of the message that you can use to join a nation, .p reload sets it so it's optionnal\n"+
-      "To create an alternative event nation:\n"+
-      ".p createEventNation (Name) (Desciption) (Thumbnail) (Channel) (Message_id)\n"+
-      "\`\`\`";
-
 const things = [
     "You can be our new lab member!",
     'You would make a perfect assistant.',
@@ -241,6 +174,47 @@ function genericEventNotifier(target, name, currentEvent, parameter2){
     },function(err){
         console.error('Cannot create DM: '+err+'\n');
     });
+}
+
+function compareVersions(version, version2){
+    if (version.substring(version.length - 2, version.length) === 'rc')
+        version = version.substring(0, version.length - 3);
+    if (version2.substring(version2.length - 2, version2.length) === 'rc')
+        version2 = version2.substring(0, version2.length - 3);
+    if(version.length > version2.length)
+        return 1;
+    if(version.length < version2.length)
+        return -1;
+    let digits = version.split('.');
+    let digits2 = version2.split('.');
+    for(i = 0; i < digits.length; i++){
+        let d1 = parseInt(digits[i]);
+        let d2 = parseInt(digits2[i]);
+        if(d1 > d2)
+            return 1;
+        if(d1 < d2)
+            return -1
+    }
+    return 0;
+}
+
+function formatUserList(list){
+    let res = '';
+    for(i of list){
+        if(i)
+            res += `${i.nickname?i.nickname:i.user.username}\n`;
+    }
+    return res;
+}
+
+function getMemberList(stringList, members){
+    let res = [];
+    for(i of stringList.split('|')){
+        let member = members.resolve(i);
+        if(member)
+            res.push(member);
+    }
+    return res;
 }
 
 async function findByName(manager, name){ // jshint ignore:line
@@ -1031,6 +1005,9 @@ function errorLog(errs) {
   }
 
 module.exports = {
+    compareVersions: compareVersions,
+    formatUserList:formatUserList,
+    getMemberList:getMemberList,
     asyncForEach: asyncForEach,
     calculateYesterday: calculateYesterday,
     consumeTimedEvent: consumeTimedEvent,
@@ -1048,10 +1025,6 @@ module.exports = {
     getRandomNation: getRandomNation,
     getResultImage: getResultImage,
     getShares: getShares,
-    help: help,
-    helpAssign: helpAssign,
-    helpCreateNation: helpCreateNation,
-    helpLevels: helpLevels,
     statuses: statuses,
     joinNation: joinNation,
     leaveNation: leaveNation,

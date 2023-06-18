@@ -7,6 +7,11 @@ const { errors } = require('undici');
 
 const OWNER = process.env.OWNER;
 
+const deleteButton = new ButtonBuilder()
+            .setCustomId('delete')
+            .setLabel('Delete this message')
+            .setStyle(ButtonStyle.Danger)
+
 //Notify a new member in the dedicated welcome channel (if any)
 async function welcomeNewMember(member){
     let res = await checkNewMember(member);
@@ -106,13 +111,9 @@ function updateGuild(body){
     let isValid = (numbersOnly.test(body.guild)) 
         && (numbersOnly.test(body.welcome_channel) || !body.welcome_channel.length) 
         && (numbersOnly.test(body.information_channel) || !body.information_channel.length)
-        && (numbersOnly.test(body.starboard_channel) || !body.starboard_channel.length)
-        && (numbersOnly.test(body.nb_starboard) || !body.nb_starboard.length) 
         && (legalCharacters.test(body.mute_role) || !body.mute_role.length)
     let guildInfo = { welcomeChannel:body.welcome_channel || 0, 
             informationChannel:body.information_channel || 0,
-            starboardChannel:body.starboard_channel || 0, 
-            nbStarboard:body.nb_starboard || 0, 
             inactive:body.inactive && 1, 
             muteRole:body.mute_role || 0,
             frozen:body.frozen === 'true'};
@@ -494,6 +495,108 @@ async function muteUnmute(client, interaction){
     return message;
 }
 
+/*
+Create a message to allow people to vote to pin a message
+*/
+async function votePin(interaction){
+    let nbPins = await dao.getNumberPins(interaction.guildId);
+    if(!nbPins)
+        return 'No amount of votes have been set yet, ask the server owner!';
+    if(nbPins === 1){
+        interaction.targetMessage.pin();
+        return 'Message pinned';
+    }
+    let ongoingVote = await dao.getVote('pin', interaction.guildId, interaction.channelId, interaction.targetId);
+    if(ongoingVote.rows.length>0){//Link to the existing vote
+        return `A vote is already ongoing: https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${ongoingVote.rows[0].mages_message}`;
+    }
+
+    let dateEnd = Date.now();
+    dateEnd = new Date(dateEnd+3600000*24)
+
+    const embed = new EmbedBuilder()
+        .setColor(0xAFFAB0)
+        .setTitle(`Pin message: ${nbPins} votes required`)
+        .setDescription(interaction.user.tag)
+        .setFooter({ text: `Vote requested by ${interaction.user.tag} ending at ${dateEnd}`});
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`pin_${interaction.targetId}`)
+            .setLabel('Vote')
+            .setStyle(ButtonStyle.Primary)
+    );
+
+    let response = await interaction.reply({embeds: [embed], components: [row] }).catch(err => console.error(tools.errorContext(err, 'at votePin')));
+
+    let res = await dao.setVote('pin',interaction.guildId, interaction.channelId, interaction.targetId, response.id, `${interaction.user.id}`, nbPins, dateEnd);
+    if(!res)
+        response.edit({embeds: [], components: [new ActionRowBuilder().addComponents(deleteButton)], content:'Something went wrong...'});
+}
+
+async function addVotePin(interaction, targetMessage){
+    let currentVote = await dao.getVote('pin', interaction.guildId, interaction.channelId, targetMessage);
+    currentVote = currentVote.rows[0];
+    if(!currentVote||currentVote.end_date < Date.now()){
+        interaction.message.delete().catch(err=>{});
+        return 'Vote is obsolete\n';
+    }
+    let nbPins = await dao.getNumberPins(interaction.guildId);
+    if(!nbPins){
+        interaction.message.delete().catch(err=>{});
+        return 'No amount of votes have been set yet, ask the server owner!';
+    }
+    let voters = tools.getMemberList(currentVote.votes, interaction.guild.members);
+    if(voters.some(e=>e.id===interaction.member.id)){
+        voters = voters.filter(element=>element.id!=interaction.member.id)
+    }else{
+        voters.push(interaction.member);
+    }
+
+    if(voters.length>=nbPins){
+        let toPin = await interaction.channel.messages.fetch(targetMessage).catch(err=>console.error('at addVotePin() '+err));//interaction.channel.messages.resolve(targetMessage);
+        
+        if(!toPin){
+            interaction.message.delete().catch(err=>{});
+            return 'Cannot find the message to pin';
+        }
+        toPin.pin().catch(err=>console.error(`at addVotePin() ${err}`));
+    }
+
+    let embed = interaction.message.embeds[0];
+    let users = tools.formatUserList(voters);
+    embed.data.description = users;
+    await interaction.message.edit({embeds:[embed]}).catch(err=>console.error(`at addVotePin() ${err}`));
+    dao.setVote(currentVote.vote_type, currentVote.guild, currentVote.channel, currentVote.user_message, currentVote.mages_message, voters.reduce((accumulator, currentValue)=>`${accumulator}|${currentValue?currentValue.id:''}`,''), currentVote.goal, currentVote.end_date);
+    return 'Vote taken into account';
+}
+
+
+/*
+for(nation of nations.rows){
+    let discordRole = await interaction.guild.roles.resolve(nation.role);
+    let color=0;
+    if(discordRole)
+        color = discordRole.color;
+    let embed = new EmbedBuilder()
+    .setColor(color)
+    .setTitle(nation.name)
+    .setFooter({ text: nation.isunique ? 'Join only one' : 'Join as many as you want'});
+    if(nation.description)
+        embed = embed.setDescription(nation.description);
+    if(nation.thumbnail)
+        embed = embed.setThumbnail(nation.thumbnail);
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`nation_${nation.role}`)
+            .setLabel('Join/leave nation')
+            .setStyle(nation.isunique ? ButtonStyle.Success : ButtonStyle.Primary),
+    );
+    message = await informationChannel.send({embeds: [embed], components: [row] }).catch(err => .push(tools.errorContext(err, 'at updateMenu')));
+    sentMessages.push(message.id);
+};
+*/
+
 //Displays a list of muted users
 async function muteList(interaction){
     let mutedUsers = await dao.getMutes(interaction.guildId);
@@ -589,6 +692,8 @@ async function unban(interaction){
 }
 
 module.exports = {
+    votePin: votePin,
+    addVotePin: addVotePin,
     toggleNation: toggleNation,
     muteUnmute: muteUnmute,
     muteList: muteList,
