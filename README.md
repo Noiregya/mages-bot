@@ -25,8 +25,8 @@ MAGES. will send messages to moderators who opt in when members join, leave, and
 * Members whose naime contain URLs will be banned on sight.
 * A raid protection can be enabled where every member will be muted on join and mods will be notified so they can decide what to do.
 
-### Starboard
-Coming soon! 
+### Pinboard
+Right click on a message and choose "vote to pin" to begin a vote, if enough people vote, the post will be pinned.
 
 ### Activity monitor
 Inactive members will be kicked off nations afer a delay. Coming soon!
