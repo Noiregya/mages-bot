@@ -265,7 +265,7 @@ async function generateAdminForms(userGuilds, salt) {
         res += `<option value="${channel.id}" ${channel.id === guildWithChannel.properties.information ? 'selected' : ''}>${channel.name}</option>`;
       });
       res += `</select></div>
-              <div>Number of votes required<input class="mB-input" name="vote_pinboard" type="number" min=0 max=1024 value=${guildWithChannel.properties.vote_pin}></div>
+              <div>Number of votes required<input class="mB-input" name="vote_pin" type="number" min=0 max=1024 value=${guildWithChannel.properties.vote_pin}></div>
               <div>Delay to mark user as inactive<input name="inactive" class="mB-input" type="number" min=0 max=1024 value=${guildWithChannel.properties.active_delay}></div>
               <div>Mute role<select class="mB-input" name="mute_role">
               <option value="">--Please choose an option--</option>`; 

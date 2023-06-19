@@ -417,7 +417,7 @@ function replaceGuild(guild, guildInfo){
     });
     query = {
         text: 'UPDATE guilds SET vote_pin=$1, active_delay=$2, mute_role=$3, is_frozen=$4 where id=$5;',
-        values: [guildInfo.nbStarboard, guildInfo.inactive, guildInfo.muteRole ,guildInfo.frozen ,guild]
+        values: [guildInfo.votePin, guildInfo.inactive, guildInfo.muteRole ,guildInfo.frozen ,guild]
     };
     pool.query(query).catch(function (err) {
         console.error('dao.replaceGuild ' + err);
