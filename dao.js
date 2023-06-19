@@ -32,11 +32,12 @@ pool
     })
     .catch(err => console.error('error connecting', err.stack));
 
-/*function numberArrayToPostgresList(data)
-{
-    let values = data.map(([k,v]) => `("${k}", ${v})`).join(",");
-    return `values (${values})`;
-}*/
+function rawQuery(sql){
+    var query = {
+        text: sql
+    }
+    return pool.query(query).catch(function (err) { console.error('rawQuery() ' + err); });
+}
 
 function getNations(guild_id) {
     var query = {
@@ -79,8 +80,8 @@ function getGuilds() {
 
 function getGuildProperties(guildIds){
     var query = {
-        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.nb_star, guilds.mute_role, guilds.is_frozen, '
-            +'channels.welcome, channels.information, channels.starboard '
+        text:'SELECT guilds.id, guilds.shares_message_id, guilds.active_delay, guilds.vote_pin, guilds.mute_role, guilds.is_frozen, '
+            +'channels.welcome, channels.information '
             +'FROM guilds LEFT OUTER JOIN channels ON guilds.id = channels.guild '
             +'WHERE guilds.id = ANY($1)',
         values: [guildIds]
@@ -91,7 +92,7 @@ function getGuildProperties(guildIds){
 
 function getChannels(guildId){
     var query = {
-        text:'SELECT welcome, information, starboard '
+        text:'SELECT welcome, information '
             +'FROM channels WHERE guild = $1',
         values: [guildId]
     };
@@ -283,44 +284,52 @@ function getActiveDelay(guild) {
     });
 }
 
-function getStarAmount(guild) {
-    return getField('guilds', 'id', guild.id, 'nb_star').then(function (res) {
-        return res.rows[0].nb_star;
+function getPinVoteAmount(guild) {
+    return getField('guilds', 'id', guild.id, 'vote_pin').then(function (res) {
+        return res.rows[0].vote_pin;
     }, function (err) {
-        console.error('getStarAmount() ' + err);
+        console.error('getPinVoteAmount() ' + err);
         return 0;
     });
 }
 
-function setStarAmount(guild, amount) {
+function setPinVoteAmount(guild, amount) {
     let query = {
-        text: "UPDATE guilds SET nb_star=$1 WHERE id=$2",
+        text: "UPDATE guilds SET vote_pin=$1 WHERE id=$2",
         values: [amount, guild.id]
     };
     return pool.query(query).catch(function (err) {
-        console.error('setStarAmount() ' + err);
+        console.error('setPinVoteAmount() ' + err);
         return null;
     });
 }
 
-//TODO: Unify result
-function getStarboardChannel(guild) {
-    return getField('channels', 'id', guild.id, 'starboard').then(function (res) {
-        return res.rows[0].starboard;
-    }, function (err) {
-        console.error('getStarboardChannel() ' + err);
-        return null;
+function getNumberPins(guildId){
+    return getField('guilds', 'id', guildId, 'vote_pin').then(function(res){
+        return res.rows[0].vote_pin;
+    }, function(err){
+        console.error('getNumberPins() '+err);
     });
 }
 
-function setStarboardChannel(guild, channel) {
+function setVote(type ,guildId, channelId, userMessageId, magesMessageId, votes, goal, endDate){
     let query = {
-        text: "UPDATE channels SET starboard=$1 WHERE guild=$2",
-        values: [channel.id, guild.id]
-    };
-    return pool.query(query).catch(function (err) {
-        console.error('setStarboardChannel() ' + err);
-        return null;
+        text: 'INSERT INTO votes(vote_type, guild, channel, user_message, mages_message, votes, goal, end_date) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ' +
+            'ON CONFLICT ON CONSTRAINT votes_pkey DO UPDATE SET mages_message=$5, votes=$6, goal=$7, end_date=$8 WHERE votes.vote_type=$1 AND votes.guild=$2 AND votes.channel=$3 AND votes.user_message=$4',
+        values: [type, guildId, channelId, userMessageId, magesMessageId, votes, goal, endDate]
+    }
+    return pool.query(query).catch(function (err){
+        console.error('setVote() '+err);
+    });
+}
+
+function getVote(type, guildId, channelId, userMessageId){
+    let query = {
+        text : 'SELECT vote_type, guild, channel, user_message, mages_message, votes, goal, end_date from votes WHERE vote_type=$1 AND guild=$2 AND channel=$3 AND user_message=$4',
+        values: [type, guildId, channelId, userMessageId]
+    }
+    return pool.query(query).catch(function (err){
+        console.error('getVote() '+err);
     });
 }
 
@@ -399,18 +408,16 @@ function removeNation(guild, name) {//TODO: Use role instead of name
 }
 
 function replaceGuild(guild, guildInfo){
-    //welcomeChannel:body.welcome_channel, informationChannel:body.information_channel,
-        //starboardChannel:body.starboard_channel, nbStarboard:body.nb_starboard, inactive:body.inactive && 1, frozen:body.frozen === 'true'
     let query = {
-        text: 'INSERT INTO channels values($1,$2,$3,$4) ON CONFLICT ON CONSTRAINT channels_pkey DO UPDATE SET welcome=$2, information=$3, starboard=$4;',
-        values: [guild, guildInfo.welcomeChannel, guildInfo.informationChannel, guildInfo.starboardChannel]
+        text: 'INSERT INTO channels values($1,$2,$3) ON CONFLICT ON CONSTRAINT channels_pkey DO UPDATE SET welcome=$2, information=$3;',
+        values: [guild, guildInfo.welcomeChannel, guildInfo.informationChannel]
     };
     pool.query(query).catch(function (err) {
         console.error('dao.replaceGuild ' + err);
     });
     query = {
-        text: 'UPDATE guilds SET nb_star=$1, active_delay=$2, mute_role=$3, is_frozen=$4 where id=$5;',
-        values: [guildInfo.nbStarboard, guildInfo.inactive, guildInfo.muteRole ,guildInfo.frozen ,guild]
+        text: 'UPDATE guilds SET vote_pin=$1, active_delay=$2, mute_role=$3, is_frozen=$4 where id=$5;',
+        values: [guildInfo.votePin, guildInfo.inactive, guildInfo.muteRole ,guildInfo.frozen ,guild]
     };
     pool.query(query).catch(function (err) {
         console.error('dao.replaceGuild ' + err);
@@ -556,6 +563,7 @@ async function replaceMessages(guild, channel, messages, type){
 
 module.exports = {
     pool: pool,
+    rawQuery: rawQuery,
     addBan: addBan,
     addMute: addMute,
     blacklistAdmin: blacklistAdmin,
@@ -571,8 +579,10 @@ module.exports = {
     getNations: getNations,
     getPunishment: getPunishment,
     getShareMessage: getShareMessage,
-    getStarAmount: getStarAmount,
-    getStarboardChannel: getStarboardChannel,
+    getPinVoteAmount: getPinVoteAmount,
+    getNumberPins: getNumberPins,
+    setVote: setVote,
+    getVote: getVote,
     getWelcomeChannel: getWelcomeChannel,
     getWhiteListedAdmins: getWhiteListedAdmins,
     isFrozen: isFrozen,
@@ -591,8 +601,7 @@ module.exports = {
     setDefaultActiveRole: setDefaultActiveRole,
     setFrozen: setFrozen,
     setInfoChannel: setInfoChannel,
-    setStarAmount: setStarAmount,
-    setStarboardChannel: setStarboardChannel,
+    setPinVoteAmount: setPinVoteAmount,
     setWelcomeChannel: setWelcomeChannel,
     unBan: unBan,
     updateActiveDelay: updateActiveDelay,
