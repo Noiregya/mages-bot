@@ -111,12 +111,14 @@ function updateGuild(body){
     let isValid = (numbersOnly.test(body.guild)) 
         && (numbersOnly.test(body.welcome_channel) || !body.welcome_channel.length) 
         && (numbersOnly.test(body.information_channel) || !body.information_channel.length)
+        && (numbersOnly.test(body.vote_pin) || !body.vote_pin.length)
         && (legalCharacters.test(body.mute_role) || !body.mute_role.length)
     let guildInfo = { welcomeChannel:body.welcome_channel || 0, 
             informationChannel:body.information_channel || 0,
             inactive:body.inactive && 1, 
             muteRole:body.mute_role || 0,
-            frozen:body.frozen === 'true'};
+            frozen:body.frozen === 'true',
+            votePin:body.vote_pin || 0};
     if(!isValid)
         throw {name: 'invalidInputException', message: 'One of the elements in the server configuration is illegal'};
     //Turn values into arrays if they aren't
