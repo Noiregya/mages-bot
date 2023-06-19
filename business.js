@@ -508,9 +508,9 @@ async function votePin(interaction){
         interaction.targetMessage.pin();
         return 'Message pinned';
     }
-    let ongoingVote = await dao.getVote('pin', interaction.guildId, interaction.channelId, interaction.targetId);
-    if(ongoingVote.rows.length>0){//Link to the existing vote
-        return `A vote is already ongoing: https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${ongoingVote.rows[0].mages_message}`;
+    let currentVote = await dao.getVote('pin', interaction.guildId, interaction.channelId, interaction.targetId);
+    if(currentVote.rows.length>0){//Link to the existing vote
+        return `A vote is already ongoing: https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${currentVote.rows[0].mages_message}`;
     }
 
     let dateEnd = Date.now();
@@ -519,8 +519,9 @@ async function votePin(interaction){
     const embed = new EmbedBuilder()
         .setColor(0xAFFAB0)
         .setTitle(`Pin message: ${nbPins} votes required`)
-        .setDescription(interaction.user.tag)
-        .setFooter({ text: `Vote requested by ${interaction.user.tag} ending at ${dateEnd}`});
+        .setDescription(`https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${interaction.targetId}\n
+        ${interaction.user.username}`)
+        .setFooter({ text: `Vote requested by ${interaction.user.username} ending at ${dateEnd}`});
 
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -567,7 +568,8 @@ async function addVotePin(interaction, targetMessage){
 
     let embed = interaction.message.embeds[0];
     let users = tools.formatUserList(voters);
-    embed.data.description = users;
+    embed.data.description = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${targetMessage}\n
+    ${users}`;
     await interaction.message.edit({embeds:[embed]}).catch(err=>console.error(`at addVotePin() ${err}`));
     dao.setVote(currentVote.vote_type, currentVote.guild, currentVote.channel, currentVote.user_message, currentVote.mages_message, voters.reduce((accumulator, currentValue)=>`${accumulator}|${currentValue?currentValue.id:''}`,''), currentVote.goal, currentVote.end_date);
     return 'Vote taken into account';
