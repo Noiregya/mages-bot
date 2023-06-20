@@ -170,19 +170,12 @@ async function register(interaction){
             return await interactions.register();
         return 'This command is reserved to the bot owner';
     }else{
-        if(interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
-            return await interactions.register(interaction.guild);
-        else 
-            return 'This command is reserved to administrators';
+        return await interactions.register(interaction.guild);
     }
 }
 
 async function updateMenu(interaction){ 
     let errors  = [];
-    if (!interaction.inGuild())
-        return 'This command is only usable in a guild';
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
-        return 'You must be admin in this guild to use this command';
     let channels = await dao.getChannels(interaction.guildId);
     let informationChannelId;
     if(channels && channels.rows && channels.rows.length > 0)
@@ -448,51 +441,46 @@ function addRolesToNewMember(member){//TODO: Rename function
 //Mute or unmute user
 async function muteUnmute(client, interaction){
     let message;
-    if(interaction.member //Check if this is on a server
-       && interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){ 
-        //Retrieve guild
-        let guild = client.guilds.resolve(interaction.guildId);
-        if(!guild){
-            message = 'Error retrieving your guild with ID' + interaction.guildId;
-            return message;
-        }
-        //Retrieve user
-        let target = guild.members.resolve(interaction.targetId);
-        if(!target){
-            message = 'Error retrieving user with ID' + interaction.targetId;
-            return message;
-        }
-        //Retrieve role
-        let roleId = await dao.getGuildProperties([interaction.guildId]);
-        roleId = roleId.rows[0].mute_role;
-        let roles = await interaction.guild.roles;
-        let role = roles.resolve(roleId);
+    //Retrieve guild
+    let guild = client.guilds.resolve(interaction.guildId);
+    if(!guild){
+        message = 'Error retrieving your guild with ID' + interaction.guildId;
+        return message;
+    }
+    //Retrieve user
+    let target = guild.members.resolve(interaction.targetId);
+    if(!target){
+        message = 'Error retrieving user with ID' + interaction.targetId;
+        return message;
+    }
+    //Retrieve role
+    let roleId = await dao.getGuildProperties([interaction.guildId]);
+    roleId = roleId.rows[0].mute_role;
+    let roles = await interaction.guild.roles;
+    let role = roles.resolve(roleId);
 
-        if (!role)
-            return 'A mute role have not been defined for this guild. Set one in the admin page.';
-        if (target._roles.includes(role.id)){
-            //Unmute user
-            await target.roles.remove(role,"Unmuted by "+interaction.user.username).then(function(res){
-                dao.removePunishment(guild.id, target.id);
-                message = 'User unmuted';
-            },function(err){
-                console.error('MUTE '+err);
-                message = 'Error muting user: '+err;
-                return message;
-            });
-        } else {
-            //Mute user
-            await target.roles.add(role,"Muted by "+interaction.user.username).then(function(res){
-                dao.addMute(guild.id, target.id);
-                message = 'User muted';
-            },function(err){
-                console.error('MUTE '+err);
-                message = 'Error muting user: '+err;
-                return message;
-            });
-        }
-    }else{
-        message = 'You are not allowed to mute or unmute this user here.';
+    if (!role)
+        return 'A mute role have not been defined for this guild. Set one in the admin page.';
+    if (target._roles.includes(role.id)){
+        //Unmute user
+        await target.roles.remove(role,"Unmuted by "+interaction.user.username).then(function(res){
+            dao.removePunishment(guild.id, target.id);
+            message = 'User unmuted';
+        },function(err){
+            console.error('MUTE '+err);
+            message = 'Error muting user: '+err;
+            return message;
+        });
+    } else {
+        //Mute user
+        await target.roles.add(role,"Muted by "+interaction.user.username).then(function(res){
+            dao.addMute(guild.id, target.id);
+            message = 'User muted';
+        },function(err){
+            console.error('MUTE '+err);
+            message = 'Error muting user: '+err;
+            return message;
+        });
     }
     return message;
 }
@@ -626,14 +614,12 @@ async function toggleWhitelist(member){
             });
             message = 'You will not receive generic notifications anymore.';
 
-        }else if(member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
+        }else{
             await dao.whitelistAdmin(member.user.id, member.guild.id, member.user.tag).catch(function(err){
                 message = 'Error: '+err;
                 return message;
             });
             message = 'You will receive generic notifications.';
-        }else{
-            message = 'You are not allowed to use this command here.';
         }
     }else{
         message = 'You need to be in a guild to perform this command.';
@@ -663,35 +649,27 @@ async function parrot(interaction){
 
 //Ban a user before they join
 async function preban(interaction){
-    if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
-        let userId = interaction.options.getString('userid');
-        let regex = new RegExp(/^\d{17,19}$/);
-        let isSnowflake = regex.test(userId);
-        if(isSnowflake){
-            dao.addBan(interaction.guildId, userId);
-            return 'User ' + userId + ' was banned from the server';
-        }else{
-            return 'Please enter a valid user ID';
-        }
+    let userId = interaction.options.getString('userid');
+    let regex = new RegExp(/^\d{17,19}$/);
+    let isSnowflake = regex.test(userId);
+    if(isSnowflake){
+        dao.addBan(interaction.guildId, userId);
+        return 'User ' + userId + ' was banned from the server';
     }else{
-        return 'You don\'t have sufficient permissions for this command';
+        return 'Please enter a valid user ID';
     }
 }
 
 //Unbans a user
 async function unban(interaction){
-    if (interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)){
-        let userId = interaction.options.getString('userid');
-        let regex = new RegExp(/^\d{17,19}$/);
-        let isSnowflake = regex.test(userId);
-        if(isSnowflake){
-            dao.unBan(interaction.guildId, userId);
-            return 'User ' + userId + ' was unbanned';
-        }else{
-            return 'Please enter a valid user ID';
-        }
+    let userId = interaction.options.getString('userid');
+    let regex = new RegExp(/^\d{17,19}$/);
+    let isSnowflake = regex.test(userId);
+    if(isSnowflake){
+        dao.unBan(interaction.guildId, userId);
+        return 'User ' + userId + ' was unbanned';
     }else{
-        return 'You don\'t have sufficient permissions for this command';
+        return 'Please enter a valid user ID';
     }
 }
 
