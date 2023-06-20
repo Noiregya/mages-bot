@@ -12,6 +12,15 @@ const rest = new REST({ version: '10' }).setToken(token);
 //Deploy the commands
 async function register(guild){
     try {
+        //delete all commands
+        await rest.put(
+            Routes.applicationGuildCommands(applicationId, guild.id),
+            { body: [] },
+        );
+        await rest.put(
+            Routes.applicationCommands(applicationId),
+            { body: [] },
+        );
         let data;
         if(guild){//The commands need to be deployed at a guild level
             const commandFiles = fs.readdirSync('./commands/guild').filter(file => file.endsWith('.js'));
