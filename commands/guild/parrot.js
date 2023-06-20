@@ -1,5 +1,5 @@
 
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 
 const data = new SlashCommandBuilder()
 .setName('parrot')
@@ -11,7 +11,9 @@ const data = new SlashCommandBuilder()
     option =>
     option.setName('channel')
     .setDescription('The channel to repeat into')
-    .setRequired(false));
+    .setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+	.setDMPermission(false);
 
 module.exports = {
     data: data
